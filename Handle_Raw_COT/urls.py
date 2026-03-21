@@ -1,8 +1,8 @@
-from django.contrib import admin
 from django.urls import path
-from . import views
+from .views import *
+
+app_name = "Handle_Raw_COT"
 
 urlpatterns = [
-    path('admin', admin.site.urls),
-    path('CotUploadView', views.CotUploadView, name='CotUploadView'),
+    path("upload/", CotUploadView.as_view(), name="upload"),
 ]

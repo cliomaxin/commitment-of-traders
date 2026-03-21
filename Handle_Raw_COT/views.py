@@ -1,43 +1,68 @@
-import io
+# cot/views.py
+# ─────────────────────────────────────────────────────────────────────────────
+# Compatible with Python 3.7 and all Django versions (2.x, 3.x, 4.x).
+#
+# Changes from previous version:
+#   - request.headers dict-access replaced with request.META fallback
+#     (request.headers was added in Django 2.2; META works everywhere)
+#   - No f-strings with = (walrus / assignment expressions — Python 3.8+)
+#   - All type hints use typing module style (no built-in generics like list[x])
+# ─────────────────────────────────────────────────────────────────────────────
+
 from django.shortcuts import render
 from django.views import View
 from django.http import JsonResponse
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt  # remove if using {% csrf_token %}
-from django.shortcuts import render, redirect
-from django.contrib import messages
-from django.contrib.auth.models import User, auth
-from django.contrib.auth import login, authenticate
-from django.contrib.auth.forms import AuthenticationForm
-from django.contrib import messages
-from django.contrib.auth.decorators import login_required
 
-from .models import CotReport
+from .models import CotReport, ImportLog
 from .cot_parser import parse_cot_file_from_text
 from .forms import CotUploadForm
+
+
+def _is_ajax(request):
+    """
+    Detect AJAX / fetch() requests.
+    Works on all Django versions — request.headers requires Django 2.2+
+    so we fall back to META which is always available.
+    """
+    # Modern Django 2.2+
+    if hasattr(request, "headers"):
+        return request.headers.get("X-Requested-With") == "XMLHttpRequest"
+    # Fallback for very old Django
+    return request.META.get("HTTP_X_REQUESTED_WITH") == "XMLHttpRequest"
 
 
 class CotUploadView(View):
     template_name = "cot/upload.html"
 
+    # ── GET — render the empty upload form ───────────────────────────────────
     def get(self, request):
-        form = CotUploadForm()
-        recent = CotReport.objects.order_by("-as_of_date", "name")[:20]
-        return render(request, self.template_name, {"form": form, "recent": recent})
+        form   = CotUploadForm()
+        recent = CotReport.objects.order_by("-as_of_date", "name").select_related("import_log")[:30]
+        return render(request, self.template_name, {
+            "form":   form,
+            "recent": recent,
+        })
 
+    # ── POST — receive files, parse, save ────────────────────────────────────
     def post(self, request):
-        # Support both standard form POST and fetch() / AJAX POST
-        is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        ajax = _is_ajax(request)
 
+        # ── 1. Collect uploaded files ─────────────────────────────────────
+        # ALWAYS use getlist() — form.cleaned_data["files"] only holds one file
+        # because MultipleFileInput.value_from_datadict returns a single value
+        # to keep Django's FileField validation happy on older versions.
         uploaded_files = request.FILES.getlist("files")
 
         if not uploaded_files:
-            msg = "No files received."
-            if is_ajax:
+            msg = "No files received. Please select at least one .htm file."
+            if ajax:
                 return JsonResponse({"status": "error", "message": msg}, status=400)
-            form = CotUploadForm()
-            return render(request, self.template_name, {"form": form, "error": msg})
+            return render(request, self.template_name, {
+                "form":  CotUploadForm(),
+                "error": msg,
+            })
 
+        # ── 2. Process each file ──────────────────────────────────────────
         results_summary = []
         all_errors      = []
         total_created   = 0
@@ -46,56 +71,93 @@ class CotUploadView(View):
         for upload in uploaded_files:
             filename = upload.name
 
-            # Validate extension
-            if not (filename.lower().endswith(".htm") or filename.lower().endswith(".html")):
-                all_errors.append(f"{filename}: not an .htm/.html file, skipped.")
+            # Extension guard
+            if not (filename.lower().endswith(".htm") or
+                    filename.lower().endswith(".html")):
+                all_errors.append(
+                    "{}: not an .htm/.html file — skipped.".format(filename)
+                )
                 continue
 
-            # Read the uploaded bytes as text
+            # ── 2a. Create an ImportLog entry ─────────────────────────────
+            file_size_kb = max(1, upload.size // 1024) if hasattr(upload, "size") else 0
+
+            log = ImportLog.objects.create(
+                uploaded_by  = request.user if request.user.is_authenticated else None,
+                filename     = filename,
+                file_size_kb = file_size_kb,
+                status       = "pending",
+            )
+
+            # ── 2b. Read bytes → text ─────────────────────────────────────
             try:
                 html_text = upload.read().decode("utf-8", errors="replace")
-            except Exception as e:
-                all_errors.append(f"{filename}: could not read file — {e}")
+            except Exception as exc:
+                err_msg = "{}: could not read file — {}".format(filename, exc)
+                all_errors.append(err_msg)
+                log.mark_complete(created=0, updated=0, errors=err_msg)
                 continue
 
-            # Parse
+            # ── 2c. Parse ────────────────────────────────────────────────
             try:
                 records = parse_cot_file_from_text(html_text, source_file=filename)
-            except Exception as e:
-                all_errors.append(f"{filename}: parse error — {e}")
+            except Exception as exc:
+                err_msg = "{}: parse error — {}".format(filename, exc)
+                all_errors.append(err_msg)
+                log.mark_complete(created=0, updated=0, errors=err_msg)
                 continue
 
             if not records:
-                all_errors.append(f"{filename}: no target instruments found.")
+                err_msg = (
+                    "{}: no target instruments found. "
+                    "Make sure you are uploading deacmesf.htm or deacmxsf.htm."
+                ).format(filename)
+                all_errors.append(err_msg)
+                log.mark_complete(created=0, updated=0, errors=err_msg)
                 continue
 
-            # Save to database
-            file_created = file_updated = 0
+            # ── 2d. Save to database ──────────────────────────────────────
+            file_created    = 0
+            file_updated    = 0
+            file_errors     = []
             file_instruments = []
 
             for rec in records:
-                obj, created = CotReport.objects.update_or_create(
-                    name=rec["name"],
-                    as_of_date=rec["as_of_date"],
-                    defaults={k: v for k, v in rec.items()
-                              if k not in ("name", "as_of_date")},
-                )
-                if created:
-                    file_created += 1
-                else:
-                    file_updated += 1
+                try:
+                    obj, created = CotReport.objects.update_or_create(
+                        name       = rec["name"],
+                        as_of_date = rec["as_of_date"],
+                        defaults   = CotReport.defaults_from_dict(rec, import_log=log),
+                    )
+                    if created:
+                        file_created += 1
+                    else:
+                        file_updated += 1
 
-                file_instruments.append({
-                    "name":          rec["name"],
-                    "as_of_date":    rec["as_of_date"],
-                    "open_interest": rec["open_interest"],
-                    "nc_long":       rec["nc_long"],
-                    "nc_short":      rec["nc_short"],
-                    "created":       created,
-                })
+                    file_instruments.append({
+                        "name":          rec["name"],
+                        "as_of_date":    rec["as_of_date"],
+                        "open_interest": rec["open_interest"],
+                        "nc_long":       rec["nc_long"],
+                        "nc_short":      rec["nc_short"],
+                        "created":       created,
+                    })
+
+                except Exception as exc:
+                    file_errors.append(
+                        "  {}: DB save failed — {}".format(rec.get("name", "?"), exc)
+                    )
+
+            # ── 2e. Update ImportLog ──────────────────────────────────────
+            log.mark_complete(
+                created = file_created,
+                updated = file_updated,
+                errors  = "\n".join(file_errors),
+            )
 
             total_created += file_created
             total_updated += file_updated
+            all_errors.extend(file_errors)
 
             results_summary.append({
                 "file":        filename,
@@ -104,6 +166,7 @@ class CotUploadView(View):
                 "updated":     file_updated,
             })
 
+        # ── 3. Build response ─────────────────────────────────────────────
         payload = {
             "status":        "ok" if results_summary else "error",
             "total_created": total_created,
@@ -112,10 +175,11 @@ class CotUploadView(View):
             "errors":        all_errors,
         }
 
-        if is_ajax:
+        if ajax:
             return JsonResponse(payload)
 
         return render(request, self.template_name, {
             "form":    CotUploadForm(),
             "payload": payload,
+            "recent":  CotReport.objects.order_by("-as_of_date", "name")[:30],
         })

@@ -76,10 +76,13 @@ Each result dict contains:
     trd_total_short   int
 """
 
+from __future__ import annotations
+
 import re
 from datetime import datetime
 from pathlib import Path
 from html.parser import HTMLParser
+from typing import Dict, List, Optional, Tuple, Union
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -89,7 +92,7 @@ from html.parser import HTMLParser
 # The parser matches the FIRST key found anywhere in the header line, so be
 # as specific as needed to avoid false positives.
 # ──────────────────────────────────────────────────────────────────────────────
-TARGET_INSTRUMENTS: dict[str, str] = {
+TARGET_INSTRUMENTS: Dict[str, str] = {
     # Forex – 7 majors
     "EURO FX - CHICAGO":          "EURO FX",           # EUR/USD  (avoid EURO FX/GBP, EURO FX/JPY)
     "BRITISH POUND":               "BRITISH POUND",     # GBP/USD
@@ -117,8 +120,8 @@ class _PreExtractor(HTMLParser):
     def __init__(self):
         super().__init__()
         self._in_pre = False
-        self.blocks: list[str] = []
-        self._buf: list[str] = []
+        self.blocks: List[str] = []
+        self._buf: List[str] = []
 
     def handle_starttag(self, tag, attrs):
         if tag == "pre":
@@ -156,7 +159,7 @@ _INSTRUMENT_HEADER_RE = re.compile(
 )
 
 
-def _split_into_blocks(text: str) -> list[tuple[str, str]]:
+def _split_into_blocks(text: str) -> List[Tuple[str, str]]:
     """
     Returns list of (header_line, block_text) tuples.
     block_text includes the header line itself.
@@ -203,21 +206,21 @@ _CHANGES_RE    = re.compile(
 # We capture them as whitespace-separated tokens.
 _NUM_PAT = r"([-\s]?[\d,]+)"          # one number token (handles negative)
 
-def _get_9_nums(line: str) -> list[int] | None:
+def _get_9_nums(line: str) -> Optional[List[int]]:
     """Extract exactly 9 integers from a data row, or None if not enough."""
     tokens = re.findall(r"-?[\d,]+", line)
     if len(tokens) < 9:
         return None
     return [_parse_num(t) for t in tokens[:9]]
 
-def _get_9_floats(line: str) -> list[float] | None:
+def _get_9_floats(line: str) -> Optional[List[float]]:
     tokens = re.findall(r"-?[\d.]+", line)
     if len(tokens) < 9:
         return None
     return [_parse_float(t) for t in tokens[:9]]
 
 
-def _parse_block(header: str, body: str, source_file: str, canonical_name: str) -> dict | None:
+def _parse_block(header: str, body: str, source_file: str, canonical_name: str) -> Optional[dict]:
     """Parse a single instrument block into a flat dict. Returns None on failure."""
     try:
         result: dict = {}
@@ -263,7 +266,7 @@ def _parse_block(header: str, body: str, source_file: str, canonical_name: str) 
 
         lines = body.splitlines()
 
-        def _find_row_after(keyword: str) -> str | None:
+        def _find_row_after(keyword: str) -> Optional[str]:
             """Return the first non-blank line that follows 'keyword' in the block."""
             found = False
             for ln in lines:
@@ -351,7 +354,7 @@ def _parse_block(header: str, body: str, source_file: str, canonical_name: str) 
 # ──────────────────────────────────────────────────────────────────────────────
 # PUBLIC API
 # ──────────────────────────────────────────────────────────────────────────────
-def parse_cot_file(html_path: str | Path) -> list[dict]:
+def parse_cot_file(html_path: "Union[str, Path]") -> List[dict]:
     """
     Parse one CFTC COT HTML file and return a list of dicts for the
     target instruments found in that file.
@@ -399,7 +402,7 @@ def parse_cot_file(html_path: str | Path) -> list[dict]:
     return results
 
 
-def parse_cot_files(html_paths: list[str | Path]) -> list[dict]:
+def parse_cot_files(html_paths: List) -> List[dict]:
     """
     Parse multiple CFTC COT HTML files and return all matched instruments
     combined into one list.
@@ -415,7 +418,7 @@ def parse_cot_files(html_paths: list[str | Path]) -> list[dict]:
     list[dict]
         Deduplicated list of matched instruments across all files.
     """
-    all_results: dict[tuple, dict] = {}
+    all_results: Dict[tuple, dict] = {}
 
     for path in html_paths:
         print(f"\nParsing: {path}")
@@ -432,7 +435,7 @@ def parse_cot_files(html_paths: list[str | Path]) -> list[dict]:
 # ──────────────────────────────────────────────────────────────────────────────
 # DJANGO INTEGRATION HELPER  (optional — requires Django to be set up)
 # ──────────────────────────────────────────────────────────────────────────────
-def save_to_django(results: list[dict], model_class) -> int:
+def save_to_django(results: List[dict], model_class) -> int:
     """
     Upsert parsed records into a Django model.
 
@@ -460,6 +463,62 @@ def save_to_django(results: list[dict], model_class) -> int:
         )
         count += 1
     return count
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# UPLOAD VIEW ENTRY-POINT
+# Called by the Django view which receives an InMemoryUploadedFile object.
+# Accepts the raw HTML text directly instead of a file path on disk.
+# ──────────────────────────────────────────────────────────────────────────────
+def parse_cot_file_from_text(html_text: str, source_file: str = "upload") -> List[dict]:
+    """
+    Parse a CFTC COT HTML file that has already been read into memory
+    (e.g. from Django's request.FILES) and return matched instruments.
+
+    Parameters
+    ----------
+    html_text   : str
+        Full HTML content as a string — decode the uploaded file before
+        calling this function:
+            html_text = uploaded_file.read().decode("utf-8", errors="replace")
+
+    source_file : str
+        Original filename stored in the DB for traceability,
+        e.g. "deacmesf.htm".  Defaults to "upload".
+
+    Returns
+    -------
+    list[dict]
+        One dict per matched target instrument found in the file.
+        Dict keys are identical to parse_cot_file() — see module docstring.
+    """
+    # Extract <pre> text block (same logic as the file-based function)
+    pre_text = _extract_pre_text(html_text)
+
+    # Fallback: some older CFTC files have no <pre> tags — treat whole body
+    if not pre_text.strip():
+        pre_text = html_text
+
+    blocks  = _split_into_blocks(pre_text)
+    results: List[dict] = []
+
+    for header, body in blocks:
+        header_upper = header.upper()
+        matched_name: Optional[str] = None
+
+        for key, canonical in TARGET_INSTRUMENTS.items():
+            if key.upper() in header_upper:
+                matched_name = canonical
+                break
+
+        if matched_name is None:
+            continue  # not one of the 10 target instruments
+
+        parsed = _parse_block(header, body, source_file, matched_name)
+        if parsed:
+            results.append(parsed)
+
+    return results
 
 
 # ──────────────────────────────────────────────────────────────────────────────
