@@ -4,5 +4,5 @@ from . import views
 
 urlpatterns = [
     path('admin', admin.site.urls),
-    path('CotUploadView', views.CotUploadView, name='CotUploadView'),
+    path('', views.index, name='index'),
 ]

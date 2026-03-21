@@ -1,0 +1,804 @@
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Maksim Felix — Import COT Data</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ── tokens ── */
+    :root {
+      --bg:          #0d0f12;
+      --bg2:         #13161b;
+      --bg3:         #191d24;
+      --border:      #21262f;
+      --border2:     #2c3340;
+      --gold:        #c9a84b;
+      --gold-dim:    #6b5520;
+      --cyan:        #38b2b2;
+      --green:       #3a9e6e;
+      --green-bg:    rgba(58,158,110,0.08);
+      --red:         #c0443f;
+      --red-bg:      rgba(192,68,63,0.08);
+      --yellow:      #d4a017;
+      --text:        #dde3ec;
+      --text-2:      #7a8899;
+      --text-3:      #3d4a58;
+      --mono:        'DM Mono', monospace;
+      --serif:       'DM Serif Display', Georgia, serif;
+      --sans:        'DM Sans', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 14px;
+      min-height: 100vh;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    /* ── header ── */
+    .site-header {
+      position: sticky; top: 0; z-index: 200;
+      background: rgba(13,15,18,0.96);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(10px);
+    }
+    .header-inner {
+      max-width: 1200px; margin: 0 auto;
+      padding: 0 2rem; height: 58px;
+      display: flex; align-items: center; gap: 2rem;
+    }
+    .logo { display: flex; flex-direction: column; line-height: 1; flex-shrink: 0; }
+    .logo-name { font-family: var(--serif); font-size: 1.2rem; color: var(--text); }
+    .logo-tag  { font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.2em;
+                 text-transform: uppercase; color: var(--gold); margin-top: 2px; }
+    nav { display: flex; gap: 0.2rem; }
+    nav a {
+      font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text-2);
+      padding: 0.38rem 0.85rem; border-radius: 3px; transition: all 0.15s;
+    }
+    nav a:hover { color: var(--text); background: var(--bg3); }
+    nav a.active { color: var(--gold); }
+    .header-right { margin-left: auto; }
+    .btn-sm {
+      font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--gold);
+      border: 1px solid var(--gold-dim); background: transparent;
+      padding: 0.35rem 0.9rem; border-radius: 3px; cursor: pointer;
+      transition: all 0.15s; display: inline-block;
+    }
+    .btn-sm:hover { background: var(--gold); color: var(--bg); border-color: var(--gold); }
+
+    /* ── page shell ── */
+    .page-wrap { max-width: 1200px; margin: 0 auto; padding: 3rem 2rem 5rem; }
+
+    /* ── page title ── */
+    .page-title {
+      margin-bottom: 2.5rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1.5rem;
+    }
+    .page-title h1 {
+      font-family: var(--serif); font-size: 2rem; font-weight: 400;
+      color: var(--text); margin-bottom: 0.4rem;
+    }
+    .page-title h1 em { font-style: italic; color: var(--gold); }
+    .page-title p {
+      font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.1em;
+      color: var(--text-2);
+    }
+
+    /* ── two-column grid ── */
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    @media (max-width: 820px) { .grid { grid-template-columns: 1fr; } }
+
+    /* ── card ── */
+    .card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    .card-head {
+      background: var(--bg3);
+      border-bottom: 1px solid var(--border);
+      padding: 0.85rem 1.25rem;
+      display: flex; align-items: center; gap: 0.75rem;
+    }
+    .card-head-title {
+      font-family: var(--mono); font-size: 0.65rem;
+      letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold);
+    }
+    .card-body { padding: 1.5rem 1.25rem; }
+
+    /* ── upload drop zone ── */
+    .drop-zone {
+      border: 2px dashed var(--border2);
+      border-radius: 5px;
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      position: relative;
+    }
+    .drop-zone:hover, .drop-zone.drag-over {
+      border-color: var(--gold);
+      background: rgba(201,168,75,0.04);
+    }
+    .drop-zone input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .drop-icon {
+      font-size: 2rem; margin-bottom: 0.75rem;
+      display: block; line-height: 1;
+    }
+    .drop-label {
+      font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.08em;
+      color: var(--text-2); margin-bottom: 0.3rem;
+    }
+    .drop-hint {
+      font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.08em;
+      color: var(--text-3);
+    }
+
+    /* selected files list */
+    .selected-files {
+      margin-top: 1rem;
+      display: none;
+    }
+    .selected-files.visible { display: block; }
+    .selected-file-item {
+      display: flex; align-items: center; gap: 0.6rem;
+      padding: 0.45rem 0.75rem;
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 3px; margin-bottom: 0.4rem;
+      font-family: var(--mono); font-size: 0.7rem;
+      color: var(--text-2);
+    }
+    .selected-file-item .file-icon { color: var(--gold); font-size: 0.8rem; }
+    .selected-file-item .file-size { margin-left: auto; color: var(--text-3); }
+    .selected-file-item .file-remove {
+      color: var(--red); cursor: pointer; margin-left: 0.5rem;
+      font-size: 0.7rem; opacity: 0.6; transition: opacity 0.15s;
+    }
+    .selected-file-item .file-remove:hover { opacity: 1; }
+
+    /* ── file source guide ── */
+    .source-table { width: 100%; border-collapse: collapse; margin-top: 0.25rem; }
+    .source-table th, .source-table td {
+      padding: 0.5rem 0.75rem; text-align: left;
+      font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border);
+    }
+    .source-table th { color: var(--text-2); font-weight: 400; letter-spacing: 0.12em; text-transform: uppercase; }
+    .source-table td { color: var(--text); }
+    .source-table td.file-name { color: var(--gold); }
+    .source-table td.file-tags { color: var(--text-2); }
+    .source-table tr:last-child td { border-bottom: none; }
+
+    .source-url {
+      margin-top: 1rem; padding: 0.65rem 0.85rem;
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 3px;
+      font-family: var(--mono); font-size: 0.62rem;
+      color: var(--text-2); letter-spacing: 0.04em;
+    }
+    .source-url span { color: var(--gold); }
+
+    /* ── submit ── */
+    .submit-row {
+      margin-top: 1.25rem; display: flex; gap: 0.75rem; align-items: center;
+    }
+    .btn-primary {
+      font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.1em;
+      text-transform: uppercase;
+      background: var(--gold); color: var(--bg);
+      border: none; padding: 0.65rem 1.75rem;
+      border-radius: 3px; cursor: pointer;
+      transition: opacity 0.15s;
+      display: flex; align-items: center; gap: 0.6rem;
+    }
+    .btn-primary:hover { opacity: 0.88; }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-reset {
+      font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text-2);
+      background: none; border: 1px solid var(--border);
+      padding: 0.6rem 1.2rem; border-radius: 3px; cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-reset:hover { border-color: var(--border2); color: var(--text); }
+
+    /* ── progress ── */
+    .progress-bar-wrap {
+      display: none; margin-top: 1rem;
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 3px; overflow: hidden; height: 4px;
+    }
+    .progress-bar-wrap.visible { display: block; }
+    .progress-bar {
+      height: 100%; width: 0%;
+      background: var(--gold);
+      transition: width 0.4s ease;
+    }
+    .progress-label {
+      font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.08em;
+      color: var(--text-3); margin-top: 0.5rem; display: none;
+    }
+    .progress-label.visible { display: block; }
+
+    /* ── results panel ── */
+    .results-panel { display: none; margin-top: 1.5rem; }
+    .results-panel.visible { display: block; }
+
+    .result-summary {
+      display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;
+    }
+    .result-stat {
+      flex: 1; min-width: 100px;
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 4px; padding: 0.75rem 1rem;
+      text-align: center;
+    }
+    .result-stat-value {
+      font-family: var(--mono); font-size: 1.4rem; font-weight: 500;
+      color: var(--gold); display: block; margin-bottom: 0.2rem;
+    }
+    .result-stat-label {
+      font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--text-3);
+    }
+
+    /* per-file accordion */
+    .file-result {
+      border: 1px solid var(--border); border-radius: 4px;
+      margin-bottom: 0.75rem; overflow: hidden;
+    }
+    .file-result-head {
+      background: var(--bg3); padding: 0.7rem 1rem;
+      display: flex; align-items: center; gap: 0.75rem;
+      cursor: pointer; user-select: none;
+      transition: background 0.15s;
+    }
+    .file-result-head:hover { background: rgba(201,168,75,0.06); }
+    .file-result-name {
+      font-family: var(--mono); font-size: 0.7rem; color: var(--gold); flex: 1;
+    }
+    .file-result-badge {
+      font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.1em;
+      padding: 0.18rem 0.5rem; border-radius: 2px;
+    }
+    .badge-ok  { background: var(--green-bg); color: var(--green); border: 1px solid rgba(58,158,110,0.25); }
+    .badge-err { background: var(--red-bg);   color: var(--red);   border: 1px solid rgba(192,68,63,0.25); }
+    .chevron { color: var(--text-3); transition: transform 0.2s; font-size: 0.7rem; }
+    .file-result-head.open .chevron { transform: rotate(90deg); }
+
+    .file-result-body {
+      display: none; border-top: 1px solid var(--border);
+    }
+    .file-result-body.open { display: block; }
+
+    .instrument-row {
+      display: flex; align-items: center; gap: 0.75rem;
+      padding: 0.5rem 1rem; border-bottom: 1px solid var(--border);
+      font-family: var(--mono); font-size: 0.68rem;
+    }
+    .instrument-row:last-child { border-bottom: none; }
+    .instr-name { flex: 1; color: var(--text); }
+    .instr-date { color: var(--text-2); }
+    .instr-oi   { color: var(--cyan); }
+    .instr-status {
+      font-size: 0.58rem; letter-spacing: 0.1em;
+      padding: 0.15rem 0.4rem; border-radius: 2px;
+    }
+    .status-new { background: var(--green-bg); color: var(--green); }
+    .status-upd { background: rgba(56,178,178,0.08); color: var(--cyan); }
+
+    /* errors */
+    .error-list {
+      background: var(--red-bg); border: 1px solid rgba(192,68,63,0.25);
+      border-radius: 4px; padding: 0.75rem 1rem; margin-top: 0.75rem;
+    }
+    .error-list p {
+      font-family: var(--mono); font-size: 0.68rem; color: var(--red);
+      margin-bottom: 0.25rem;
+    }
+    .error-list p:last-child { margin-bottom: 0; }
+
+    /* ── recent table ── */
+    .recent-table { width: 100%; border-collapse: collapse; }
+    .recent-table th {
+      padding: 0.5rem 0.75rem; text-align: left;
+      font-family: var(--mono); font-size: 0.58rem;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--text-3); font-weight: 400;
+      border-bottom: 1px solid var(--border);
+    }
+    .recent-table td {
+      padding: 0.5rem 0.75rem;
+      font-family: var(--mono); font-size: 0.7rem;
+      color: var(--text-2); border-bottom: 1px solid rgba(33,38,47,0.5);
+    }
+    .recent-table td.td-name  { color: var(--text); }
+    .recent-table td.td-date  { color: var(--text-2); }
+    .recent-table td.td-oi    { color: var(--cyan); text-align: right; }
+    .recent-table td.td-nc    { color: var(--green); text-align: right; }
+    .recent-table td.td-neg   { color: var(--red); text-align: right; }
+    .recent-table tr:last-child td { border-bottom: none; }
+    .recent-table tbody tr:hover td { background: rgba(201,168,75,0.025); }
+
+    .empty-state {
+      text-align: center; padding: 2.5rem 1rem;
+      font-family: var(--mono); font-size: 0.68rem;
+      letter-spacing: 0.1em; color: var(--text-3);
+    }
+
+    /* ── spinner ── */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      width: 14px; height: 14px;
+      border: 2px solid rgba(13,15,18,0.3);
+      border-top-color: var(--bg);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+    .spinner.visible { display: inline-block; }
+  </style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<header class="site-header">
+  <div class="header-inner">
+    <a href="/" class="logo">
+      <span class="logo-name">Maksim Felix</span>
+      <span class="logo-tag">Markets Intelligence</span>
+    </a>
+    <nav>
+      <a href="{% url 'cot:upload' %}" class="active">Import</a>
+      <a href="/cot/">COT Data</a>
+      <a href="/analytics/">Analytics</a>
+      <a href="/signals/">Signals</a>
+      <a href="/contact/">Contact</a>
+    </nav>
+    <div class="header-right">
+      <a href="/contact/" class="btn-sm">Contact</a>
+    </div>
+  </div>
+</header>
+
+
+<!-- ── PAGE ── -->
+<div class="page-wrap">
+
+  <div class="page-title">
+    <h1>Import <em>COT Data</em></h1>
+    <p>Upload downloaded CFTC HTML files — the engine extracts your 10 instruments and saves them to the database.</p>
+  </div>
+
+  <div class="grid">
+
+    <!-- ══ LEFT — Upload Form ══════════════════════════════════════ -->
+    <div>
+      <div class="card">
+        <div class="card-head">
+          <span class="card-head-title">Upload CFTC Files</span>
+        </div>
+        <div class="card-body">
+
+          <form id="uploadForm" method="post" enctype="multipart/form-data" novalidate>
+            {% csrf_token %}
+
+            <!-- Drop zone -->
+            <div class="drop-zone" id="dropZone">
+              <input type="file" name="files" id="fileInput"
+                     accept=".htm,.html" multiple />
+              <span class="drop-icon">📂</span>
+              <div class="drop-label">Drop CFTC .htm files here, or click to browse</div>
+              <div class="drop-hint">Multiple files supported &nbsp;·&nbsp; .htm and .html only</div>
+            </div>
+
+            <!-- Selected files preview -->
+            <div class="selected-files" id="selectedFiles"></div>
+
+            <!-- Progress bar -->
+            <div class="progress-bar-wrap" id="progressWrap">
+              <div class="progress-bar" id="progressBar"></div>
+            </div>
+            <div class="progress-label" id="progressLabel">Uploading…</div>
+
+            <!-- Actions -->
+            <div class="submit-row">
+              <button type="submit" class="btn-primary" id="submitBtn" disabled>
+                <span class="spinner" id="spinner"></span>
+                <span id="submitLabel">Import Files</span>
+              </button>
+              <button type="button" class="btn-reset" id="resetBtn">Clear</button>
+            </div>
+          </form>
+
+          <!-- Results panel (filled by JS after AJAX response) -->
+          <div class="results-panel" id="resultsPanel"></div>
+
+        </div>
+      </div><!-- /.card -->
+
+      <!-- Source guide -->
+      <div class="card" style="margin-top:1.25rem;">
+        <div class="card-head">
+          <span class="card-head-title">Which Files to Download</span>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <table class="source-table">
+            <thead>
+              <tr>
+                <th>File</th>
+                <th>Instruments Inside</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="file-name">deacmesf.htm</td>
+                <td class="file-tags">EUR · GBP · JPY · CHF · CAD · AUD · NZD · Bitcoin</td>
+              </tr>
+              <tr>
+                <td class="file-name">deacmxsf.htm</td>
+                <td class="file-tags">Gold · Silver</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="source-url">
+            Download from:&nbsp;
+            <span>https://www.cftc.gov/dea/futures/</span>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /left -->
+
+
+    <!-- ══ RIGHT — Recent imports ══════════════════════════════════ -->
+    <div>
+      <div class="card">
+        <div class="card-head">
+          <span class="card-head-title">Recently Imported</span>
+        </div>
+        <div class="card-body" style="padding:0;">
+
+          {% if recent %}
+          <table class="recent-table">
+            <thead>
+              <tr>
+                <th>Instrument</th>
+                <th>As Of</th>
+                <th style="text-align:right;">Open Int.</th>
+                <th style="text-align:right;">NC Net</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in recent %}
+              <tr>
+                <td class="td-name">{{ r.name }}</td>
+                <td class="td-date">{{ r.as_of_date|date:"d M Y" }}</td>
+                <td class="td-oi">{{ r.open_interest|intcomma }}</td>
+                {% with net=r.nc_long|add:"-"|add:r.nc_short|default:0 %}
+                  {% if r.nc_long > r.nc_short %}
+                    <td class="td-nc">+{{ r.nc_long|add:"-"|add:r.nc_short|intcomma }}</td>
+                  {% else %}
+                    <td class="td-neg">{{ r.nc_long|add:"-"|add:r.nc_short|intcomma }}</td>
+                  {% endif %}
+                {% endwith %}
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <div class="empty-state">No data imported yet.<br>Upload your first CFTC file above.</div>
+          {% endif %}
+
+        </div>
+      </div><!-- /.card -->
+    </div><!-- /right -->
+
+  </div><!-- /.grid -->
+</div><!-- /.page-wrap -->
+
+
+<script>
+/* ════════════════════════════════════════════════════════════════════
+   Upload page JavaScript
+   — drag-and-drop, file preview, AJAX submit, results rendering
+════════════════════════════════════════════════════════════════════ */
+(function () {
+  "use strict";
+
+  const dropZone     = document.getElementById("dropZone");
+  const fileInput    = document.getElementById("fileInput");
+  const selectedDiv  = document.getElementById("selectedFiles");
+  const submitBtn    = document.getElementById("submitBtn");
+  const resetBtn     = document.getElementById("resetBtn");
+  const spinner      = document.getElementById("spinner");
+  const submitLabel  = document.getElementById("submitLabel");
+  const progressWrap = document.getElementById("progressWrap");
+  const progressBar  = document.getElementById("progressBar");
+  const progressLbl  = document.getElementById("progressLabel");
+  const resultsPanel = document.getElementById("resultsPanel");
+  const form         = document.getElementById("uploadForm");
+
+  // We maintain our own file list so the user can remove individual files
+  let selectedFiles = [];
+
+  /* ── Drag-and-drop ── */
+  ["dragenter","dragover"].forEach(evt =>
+    dropZone.addEventListener(evt, e => {
+      e.preventDefault();
+      dropZone.classList.add("drag-over");
+    })
+  );
+  ["dragleave","drop"].forEach(evt =>
+    dropZone.addEventListener(evt, e => {
+      e.preventDefault();
+      dropZone.classList.remove("drag-over");
+    })
+  );
+  dropZone.addEventListener("drop", e => {
+    addFiles(Array.from(e.dataTransfer.files));
+  });
+
+  /* ── File input change ── */
+  fileInput.addEventListener("change", () => {
+    addFiles(Array.from(fileInput.files));
+    fileInput.value = "";  // reset so same file can be added again if needed
+  });
+
+  function addFiles(files) {
+    const valid = files.filter(f =>
+      f.name.toLowerCase().endsWith(".htm") || f.name.toLowerCase().endsWith(".html")
+    );
+    // Deduplicate by name
+    valid.forEach(f => {
+      if (!selectedFiles.find(x => x.name === f.name)) {
+        selectedFiles.push(f);
+      }
+    });
+    renderFileList();
+  }
+
+  function renderFileList() {
+    selectedDiv.innerHTML = "";
+    if (selectedFiles.length === 0) {
+      selectedDiv.classList.remove("visible");
+      submitBtn.disabled = true;
+      return;
+    }
+    selectedDiv.classList.add("visible");
+    submitBtn.disabled = false;
+
+    selectedFiles.forEach((f, idx) => {
+      const item = document.createElement("div");
+      item.className = "selected-file-item";
+      item.innerHTML = `
+        <span class="file-icon">📄</span>
+        <span class="file-name">${escHtml(f.name)}</span>
+        <span class="file-size">${formatSize(f.size)}</span>
+        <span class="file-remove" data-idx="${idx}" title="Remove">✕</span>
+      `;
+      selectedDiv.appendChild(item);
+    });
+
+    selectedDiv.querySelectorAll(".file-remove").forEach(btn => {
+      btn.addEventListener("click", () => {
+        selectedFiles.splice(parseInt(btn.dataset.idx), 1);
+        renderFileList();
+      });
+    });
+  }
+
+  /* ── Reset ── */
+  resetBtn.addEventListener("click", () => {
+    selectedFiles = [];
+    renderFileList();
+    resultsPanel.classList.remove("visible");
+    resultsPanel.innerHTML = "";
+    progressWrap.classList.remove("visible");
+    progressLbl.classList.remove("visible");
+    progressBar.style.width = "0%";
+  });
+
+  /* ── Submit via fetch (AJAX) ── */
+  form.addEventListener("submit", async e => {
+    e.preventDefault();
+
+    if (selectedFiles.length === 0) return;
+
+    // Build FormData manually using our selectedFiles array
+    const fd = new FormData();
+    fd.append("csrfmiddlewaretoken", getCsrf());
+    selectedFiles.forEach(f => fd.append("files", f, f.name));
+
+    // UI: loading state
+    submitBtn.disabled = true;
+    spinner.classList.add("visible");
+    submitLabel.textContent = "Uploading…";
+    progressWrap.classList.add("visible");
+    progressLbl.classList.add("visible");
+    progressLbl.textContent = "Sending files to server…";
+    resultsPanel.classList.remove("visible");
+    resultsPanel.innerHTML = "";
+
+    // Animate progress (fake — XHR would give real progress)
+    let pct = 0;
+    const pInterval = setInterval(() => {
+      pct = Math.min(pct + Math.random() * 18, 85);
+      progressBar.style.width = pct + "%";
+    }, 300);
+
+    try {
+      const resp = await fetch(form.action || window.location.href, {
+        method: "POST",
+        headers: { "X-Requested-With": "XMLHttpRequest" },
+        body: fd,
+      });
+
+      clearInterval(pInterval);
+      progressBar.style.width = "100%";
+      progressLbl.textContent = "Processing complete.";
+
+      if (!resp.ok) {
+        throw new Error(`Server returned ${resp.status}`);
+      }
+
+      const data = await resp.json();
+      renderResults(data);
+
+    } catch (err) {
+      clearInterval(pInterval);
+      renderError(err.message || "An unknown error occurred.");
+    } finally {
+      spinner.classList.remove("visible");
+      submitLabel.textContent = "Import Files";
+      submitBtn.disabled = false;
+      setTimeout(() => {
+        progressWrap.classList.remove("visible");
+        progressLbl.classList.remove("visible");
+        progressBar.style.width = "0%";
+      }, 2000);
+    }
+  });
+
+  /* ── Render results ── */
+  function renderResults(data) {
+    resultsPanel.classList.add("visible");
+    let html = "";
+
+    // Summary stats
+    const totalInstr = data.files
+      ? data.files.reduce((s, f) => s + (f.instruments ? f.instruments.length : 0), 0)
+      : 0;
+
+    html += `
+      <div class="result-summary">
+        <div class="result-stat">
+          <span class="result-stat-value">${totalInstr}</span>
+          <span class="result-stat-label">Instruments</span>
+        </div>
+        <div class="result-stat">
+          <span class="result-stat-value" style="color:var(--green);">${data.total_created || 0}</span>
+          <span class="result-stat-label">Created</span>
+        </div>
+        <div class="result-stat">
+          <span class="result-stat-value" style="color:var(--cyan);">${data.total_updated || 0}</span>
+          <span class="result-stat-label">Updated</span>
+        </div>
+        <div class="result-stat">
+          <span class="result-stat-value" style="color:var(--red);">${(data.errors || []).length}</span>
+          <span class="result-stat-label">Errors</span>
+        </div>
+      </div>
+    `;
+
+    // Per-file breakdown
+    if (data.files && data.files.length) {
+      data.files.forEach((f, fi) => {
+        const id = `fr-${fi}`;
+        const badge = f.instruments && f.instruments.length
+          ? `<span class="file-result-badge badge-ok">${f.instruments.length} found</span>`
+          : `<span class="file-result-badge badge-err">0 found</span>`;
+
+        html += `
+          <div class="file-result">
+            <div class="file-result-head" onclick="toggleAccordion('${id}', this)">
+              <span class="file-result-name">📄 ${escHtml(f.file)}</span>
+              ${badge}
+              <span class="file-result-badge badge-ok">+${f.created} new</span>
+              <span class="file-result-badge" style="background:rgba(56,178,178,0.08);color:var(--cyan);border:1px solid rgba(56,178,178,0.2);">${f.updated} updated</span>
+              <span class="chevron">▶</span>
+            </div>
+            <div class="file-result-body" id="${id}">
+              ${renderInstruments(f.instruments || [])}
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    // Errors
+    if (data.errors && data.errors.length) {
+      html += `<div class="error-list">`;
+      data.errors.forEach(e => {
+        html += `<p>⚠ ${escHtml(e)}</p>`;
+      });
+      html += `</div>`;
+    }
+
+    resultsPanel.innerHTML = html;
+  }
+
+  function renderInstruments(instruments) {
+    if (!instruments.length) {
+      return `<div class="instrument-row" style="color:var(--text-3);">No target instruments found in this file.</div>`;
+    }
+    return instruments.map(ins => `
+      <div class="instrument-row">
+        <span class="instr-name">${escHtml(ins.name)}</span>
+        <span class="instr-date">${escHtml(ins.as_of_date)}</span>
+        <span class="instr-oi">OI: ${fmtNum(ins.open_interest)}</span>
+        <span class="instr-status ${ins.created ? 'status-new' : 'status-upd'}">
+          ${ins.created ? "NEW" : "UPDATED"}
+        </span>
+      </div>
+    `).join("");
+  }
+
+  function renderError(msg) {
+    resultsPanel.classList.add("visible");
+    resultsPanel.innerHTML = `
+      <div class="error-list">
+        <p>⚠ Upload failed: ${escHtml(msg)}</p>
+      </div>
+    `;
+  }
+
+  /* ── Accordion toggle ── */
+  window.toggleAccordion = function(id, head) {
+    const body = document.getElementById(id);
+    const open = body.classList.toggle("open");
+    head.classList.toggle("open", open);
+  };
+
+  /* ── Helpers ── */
+  function getCsrf() {
+    const el = document.querySelector("[name=csrfmiddlewaretoken]");
+    return el ? el.value : "";
+  }
+
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  function formatSize(bytes) {
+    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+    return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+  }
+
+  function fmtNum(n) {
+    return Number(n).toLocaleString();
+  }
+
+})();
+</script>
+
+</body>
+</html>
