@@ -32,7 +32,7 @@ def _is_ajax(request):
 
 
 class CotUploadView(View):
-    template_name = "cot/upload.html"
+    template_name = "Raw/upload.html"  # Changed from "cot/upload.html"
 
     # ── GET — render the empty upload form ───────────────────────────────────
     def get(self, request):
