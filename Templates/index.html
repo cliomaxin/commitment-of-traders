@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Maksim Felix — COT Report | CME Futures</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ─────────────────────────────────────────────
+       DESIGN TOKENS
+    ───────────────────────────────────────────── */
+    :root {
+      --bg:           #f4f1eb;
+      --bg-dark:      #1a1a18;
+      --surface:      #ffffff;
+      --surface-alt:  #ede9e0;
+      --border:       #d8d2c4;
+      --border-heavy: #b0a890;
+
+      --ink:          #1a1a18;
+      --ink-muted:    #5c5849;
+      --ink-faint:    #9e9888;
+
+      --gold:         #8b6914;
+      --gold-light:   #c9a64a;
+      --green:        #2d6a4f;
+      --green-bg:     #eaf4ef;
+      --red:          #8b2020;
+      --red-bg:       #fdf0f0;
+
+      --font-display: 'DM Serif Display', Georgia, serif;
+      --font-mono:    'DM Mono', 'Courier New', monospace;
+      --font-sans:    'DM Sans', system-ui, sans-serif;
+
+      --radius:       3px;
+      --shadow:       0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.04);
+    }
+
+    /* ─────────────────────────────────────────────
+       RESET & BASE
+    ───────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    /* ─────────────────────────────────────────────
+       HEADER / NAV
+    ───────────────────────────────────────────── */
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      background: var(--bg-dark);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .header-inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 2rem;
+      height: 58px;
+      display: flex;
+      align-items: center;
+      gap: 2.5rem;
+    }
+
+    /* Logo */
+    .logo {
+      display: flex;
+      flex-direction: column;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .logo-name {
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      color: #f4f1eb;
+      letter-spacing: -0.01em;
+    }
+    .logo-tag {
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--gold-light);
+      margin-top: 1px;
+    }
+
+    /* Primary nav */
+    .nav-primary {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      flex: 1;
+    }
+    .nav-primary a {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(244,241,235,0.5);
+      padding: 0.4rem 0.9rem;
+      border-radius: var(--radius);
+      transition: color 0.15s, background 0.15s;
+    }
+    .nav-primary a:hover,
+    .nav-primary a.active {
+      color: #f4f1eb;
+      background: rgba(255,255,255,0.07);
+    }
+    .nav-primary a.active {
+      color: var(--gold-light);
+    }
+
+    /* Header right */
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-left: auto;
+    }
+
+    .report-date {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      color: rgba(244,241,235,0.35);
+      text-transform: uppercase;
+    }
+
+    .btn-contact {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--gold-light);
+      border: 1px solid rgba(201,166,74,0.35);
+      padding: 0.38rem 1rem;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: all 0.15s;
+      background: transparent;
+    }
+    .btn-contact:hover {
+      background: var(--gold-light);
+      color: var(--bg-dark);
+      border-color: var(--gold-light);
+    }
+
+    /* ─────────────────────────────────────────────
+       PAGE HERO / CONTEXT BAND
+    ───────────────────────────────────────────── */
+    .page-hero {
+      background: var(--bg-dark);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      padding: 1.75rem 2rem 1.5rem;
+    }
+    .page-hero-inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+    }
+
+    .page-hero h1 {
+      font-family: var(--font-display);
+      font-size: 1.85rem;
+      color: #f4f1eb;
+      font-weight: 400;
+      line-height: 1.15;
+      margin-bottom: 0.35rem;
+    }
+    .page-hero h1 em {
+      font-style: italic;
+      color: var(--gold-light);
+    }
+
+    .hero-sub {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(244,241,235,0.35);
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .hero-stats {
+      display: flex;
+      gap: 2rem;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+    .hero-stat { text-align: right; }
+    .hero-stat-label {
+      font-family: var(--font-mono);
+      font-size: 0.58rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: rgba(244,241,235,0.3);
+      margin-bottom: 0.2rem;
+    }
+    .hero-stat-value {
+      font-family: var(--font-mono);
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: var(--gold-light);
+    }
+
+    /* ─────────────────────────────────────────────
+       TOOLBAR  (filter / search / count)
+    ───────────────────────────────────────────── */
+    .toolbar {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .toolbar-search {
+      position: relative;
+      flex: 1;
+      min-width: 200px;
+      max-width: 360px;
+    }
+    .toolbar-search input {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--ink);
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      padding: 0.5rem 0.85rem 0.5rem 2.2rem;
+      border-radius: var(--radius);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .toolbar-search input:focus { border-color: var(--gold); }
+    .toolbar-search input::placeholder { color: var(--ink-faint); }
+    .toolbar-search-icon {
+      position: absolute;
+      left: 0.7rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--ink-faint);
+      font-size: 0.75rem;
+      pointer-events: none;
+    }
+
+    .toolbar-count {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      color: var(--ink-faint);
+      margin-left: auto;
+    }
+
+    /* ─────────────────────────────────────────────
+       MAIN LAYOUT
+    ───────────────────────────────────────────── */
+    .page-body {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 2rem 2rem 4rem;
+    }
+
+    /* ─────────────────────────────────────────────
+       INSTRUMENT BLOCK  (one per instrument)
+    ───────────────────────────────────────────── */
+    .instrument-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      margin-bottom: 1.5rem;
+      overflow: hidden;
+    }
+
+    /* Instrument header bar */
+    .instrument-header {
+      background: var(--surface-alt);
+      border-bottom: 1px solid var(--border);
+      padding: 0.75rem 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .instrument-code {
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      letter-spacing: 0.14em;
+      color: var(--ink-faint);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      padding: 0.18rem 0.5rem;
+      border-radius: 2px;
+    }
+
+    .instrument-name {
+      font-family: var(--font-display);
+      font-size: 1.05rem;
+      color: var(--ink);
+      flex: 1;
+    }
+
+    .instrument-spec {
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      color: var(--ink-faint);
+      letter-spacing: 0.06em;
+    }
+
+    .instrument-oi {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+    .oi-label {
+      font-family: var(--font-mono);
+      font-size: 0.55rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+    }
+    .oi-value {
+      font-family: var(--font-mono);
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: var(--gold);
+    }
+
+    .instrument-asof {
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      letter-spacing: 0.1em;
+      color: var(--green);
+      padding: 0.18rem 0.5rem;
+      border: 1px solid rgba(45,106,79,0.25);
+      border-radius: 2px;
+      background: var(--green-bg);
+    }
+
+    /* ─────────────────────────────────────────────
+       THE ONE STANDARD TABLE
+       ─────────────────────
+       Column order mirrors the CFTC source exactly:
+         [row_label]
+         NC Long | NC Short | NC Spreads
+         Comm Long | Comm Short
+         Total Long | Total Short
+         NR Long | NR Short
+    ───────────────────────────────────────────── */
+    .cot-table-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .cot-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      min-width: 800px;
+    }
+
+    /* ── Column group header row ── */
+    .cot-table thead tr.thead-groups th {
+      padding: 0.55rem 0.75rem 0.3rem;
+      font-size: 0.58rem;
+      font-weight: 500;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      text-align: center;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    .cot-table thead tr.thead-groups th.col-label { text-align: left; color: transparent; }
+    .cot-table thead tr.thead-groups th.col-nc     { color: var(--gold);    background: #fdf8ee; border-left: 2px solid var(--gold-light); }
+    .cot-table thead tr.thead-groups th.col-comm   { color: #1a5276;        background: #eaf4fb; border-left: 2px solid #5dade2; }
+    .cot-table thead tr.thead-groups th.col-total  { color: var(--ink-muted); background: var(--surface-alt); border-left: 2px solid var(--border-heavy); }
+    .cot-table thead tr.thead-groups th.col-nr     { color: var(--ink-faint); background: var(--surface); border-left: 2px solid var(--border); }
+
+    /* ── Sub-header (Long / Short / Spreads) ── */
+    .cot-table thead tr.thead-cols th {
+      padding: 0.3rem 0.75rem 0.5rem;
+      font-size: 0.6rem;
+      font-weight: 400;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+      text-align: right;
+      background: var(--surface);
+      border-bottom: 2px solid var(--border-heavy);
+      white-space: nowrap;
+    }
+    .cot-table thead tr.thead-cols th.col-label-sub {
+      text-align: left;
+      color: var(--ink-muted);
+    }
+    .cot-table thead tr.thead-cols th.sep-nc    { border-left: 2px solid var(--gold-light); }
+    .cot-table thead tr.thead-cols th.sep-comm  { border-left: 2px solid #5dade2; }
+    .cot-table thead tr.thead-cols th.sep-total { border-left: 2px solid var(--border-heavy); }
+    .cot-table thead tr.thead-cols th.sep-nr    { border-left: 2px solid var(--border); }
+
+    /* ── Body rows ── */
+    .cot-table tbody tr {
+      border-bottom: 1px solid rgba(216,210,196,0.45);
+      transition: background 0.1s;
+    }
+    .cot-table tbody tr:last-child { border-bottom: none; }
+    .cot-table tbody tr:hover td { background: rgba(139,105,20,0.025); }
+
+    .cot-table tbody td {
+      padding: 0.55rem 0.75rem;
+      text-align: right;
+      color: var(--ink);
+      white-space: nowrap;
+    }
+
+    /* Row label cell */
+    .cot-table tbody td.row-label {
+      text-align: left;
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+      padding-left: 1.25rem;
+      white-space: nowrap;
+      width: 11rem;
+    }
+
+    /* Column group separators on body cells */
+    .cot-table tbody td.sep-nc    { border-left: 2px solid rgba(201,166,74,0.2); }
+    .cot-table tbody td.sep-comm  { border-left: 2px solid rgba(93,173,226,0.2); }
+    .cot-table tbody td.sep-total { border-left: 2px solid rgba(176,168,144,0.35); }
+    .cot-table tbody td.sep-nr    { border-left: 2px solid var(--border); }
+
+    /* Positive / Negative change colouring */
+    .val-pos { color: var(--green) !important; }
+    .val-neg { color: var(--red)   !important; }
+    .val-zero { color: var(--ink-faint) !important; }
+
+    /* Row-type visual hints */
+    .cot-table tbody tr.row-commitments td { color: var(--ink); font-weight: 500; }
+    .cot-table tbody tr.row-commitments td.row-label { color: var(--ink-muted); font-weight: 500; }
+
+    .cot-table tbody tr.row-change td { font-size: 0.72rem; }
+    .cot-table tbody tr.row-pct   td { color: var(--ink-muted); font-size: 0.7rem; }
+    .cot-table tbody tr.row-traders td { color: var(--ink-faint); font-size: 0.7rem; }
+    .cot-table tbody tr.row-traders td.row-label { font-weight: 400; }
+
+    /* Subtle zebra on row groups */
+    .cot-table tbody tr.row-pct td     { background: rgba(0,0,0,0.012); }
+    .cot-table tbody tr.row-traders td { background: rgba(0,0,0,0.018); }
+
+    /* ─────────────────────────────────────────────
+       FOOTER
+    ───────────────────────────────────────────── */
+    .site-footer {
+      background: var(--bg-dark);
+      border-top: 1px solid rgba(255,255,255,0.05);
+      padding: 2rem;
+      margin-top: 3rem;
+    }
+    .footer-inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .footer-logo {
+      font-family: var(--font-display);
+      font-size: 1rem;
+      color: rgba(244,241,235,0.4);
+    }
+    .footer-links {
+      display: flex;
+      gap: 2rem;
+    }
+    .footer-links a {
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(244,241,235,0.25);
+      transition: color 0.15s;
+    }
+    .footer-links a:hover { color: rgba(244,241,235,0.6); }
+    .footer-note {
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      color: rgba(244,241,235,0.2);
+      letter-spacing: 0.06em;
+    }
+
+    /* ─────────────────────────────────────────────
+       RESPONSIVE
+    ───────────────────────────────────────────── */
+    @media (max-width: 768px) {
+      .header-inner { padding: 0 1rem; gap: 1rem; }
+      .nav-primary  { display: none; }
+      .page-body    { padding: 1.25rem 1rem 3rem; }
+      .page-hero    { padding: 1.25rem 1rem 1rem; }
+      .toolbar      { padding: 0.75rem 1rem; }
+      .hero-stats   { display: none; }
+      .instrument-header { padding: 0.65rem 1rem; }
+      .instrument-spec   { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════
+     SITE HEADER
+════════════════════════════════════════════ -->
+<header class="site-header">
+  <div class="header-inner">
+
+    <!-- Logo -->
+    <a href="/" class="logo">
+      <span class="logo-name">Maksim Felix</span>
+      <span class="logo-tag">Markets Intelligence</span>
+    </a>
+
+    <!-- Primary navigation -->
+    <nav class="nav-primary">
+      <!-- Django: set class="active" on the link matching the current page -->
+      <a href="/cot/"        class="active">COT Data</a>
+      <a href="/analytics/">Analytics</a>
+      <a href="/signals/">  Signals</a>
+      <a href="/contact/">  Contact</a>
+    </nav>
+
+    <!-- Right side -->
+    <div class="header-right">
+
+      <span class="report-date">Report: 17 Mar 2026</span>
+      <a href="/contact/" class="btn-contact">Contact</a>
+    </div>
+
+  </div>
+</header>
+
+
+<!-- ════════════════════════════════════════════
+     PAGE HERO
+════════════════════════════════════════════ -->
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div>
+      <h1>Commitments of Traders — <em>CME Futures</em></h1>
+      <div class="hero-sub">
+
+        <span>Chicago Mercantile Exchange</span>
+        <span>Futures Only</span>
+        <span>Updated 20 Mar 2026</span>
+      </div>
+    </div>
+    <div class="hero-stats">
+
+      <div class="hero-stat">
+        <div class="hero-stat-label">Instruments</div>
+        <div class="hero-stat-value">56</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-label">Source</div>
+        <div class="hero-stat-value" style="font-size:0.8rem;padding-top:4px;">CFTC.gov</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════════════
+     TOOLBAR
+════════════════════════════════════════════ -->
+<div class="toolbar">
+  <div class="toolbar-search">
+    <span class="toolbar-search-icon">&#9906;</span>
+    <input type="text" id="searchInput" placeholder="Filter instruments…" autocomplete="off" />
+  </div>
+
+  <span class="toolbar-count" id="countLabel">Showing 56 instruments</span>
+</div>
+
+
+<main class="page-body" id="mainContent">
+
+
+  <div class="instrument-block" data-name="canadian dollar" data-code="090741">
+
+    <!-- ── Block header ── -->
+    <div class="instrument-header">
+
+      <span class="instrument-code">090741</span>
+
+      <span class="instrument-name">Canadian Dollar</span>
+
+
+      <span class="instrument-spec">Contracts of CAD 100,000</span>
+
+      <div class="instrument-oi">
+        <span class="oi-label">Open Interest</span>
+
+        <span class="oi-value">247,753</span>
+      </div>
+
+
+      <span class="instrument-asof">As of 03/17/26</span>
+    </div><!-- /.instrument-header -->
+
+
+    <!-- ══════════════════════════════════════════════════════════
+         THE ONE STANDARD TABLE
+         ─────────────────────
+         This exact <table> structure is reused for every instrument.
+         Only the data values change — the thead is always identical.
+    ══════════════════════════════════════════════════════════════ -->
+    <div class="cot-table-wrap">
+      <table class="cot-table">
+
+        <!-- ── Column-group header ── -->
+        <thead>
+          <tr class="thead-groups">
+            <th class="col-label"></th>
+
+            <!-- Non-Commercial spans 3 sub-columns -->
+            <th class="col-nc" colspan="3">Non-Commercial</th>
+
+            <!-- Commercial spans 2 sub-columns -->
+            <th class="col-comm" colspan="2">Commercial</th>
+
+            <!-- Total spans 2 sub-columns -->
+            <th class="col-total" colspan="2">Total</th>
+
+            <!-- Nonreportable spans 2 sub-columns -->
+            <th class="col-nr" colspan="2">Nonreportable</th>
+          </tr>
+
+          <!-- ── Sub-column labels ── -->
+          <tr class="thead-cols">
+            <th class="col-label-sub">Row</th>
+
+            <th class="sep-nc">Long</th>
+            <th>Short</th>
+            <th>Spreads</th>
+
+            <th class="sep-comm">Long</th>
+            <th>Short</th>
+
+            <th class="sep-total">Long</th>
+            <th>Short</th>
+
+            <th class="sep-nr">Long</th>
+            <th>Short</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+
+          <tr class="row-commitments">
+            <td class="row-label">Commitments</td>
+            <td class="sep-nc">66,507</td>
+            <td>65,621</td>
+            <td>7,021</td>
+            <td class="sep-comm">144,314</td>
+            <td>150,520</td>
+            <td class="sep-total">217,842</td>
+            <td>223,162</td>
+            <td class="sep-nr">29,911</td>
+            <td>24,591</td>
+          </tr>
+
+          <tr class="row-change">
+            <td class="row-label">Change (03/10/26)</td>
+            <td class="sep-nc val-neg">−27,392</td>
+            <td class="val-pos">+7,881</td>
+            <td class="val-neg">−6,308</td>
+            <td class="sep-comm val-neg">−1,355</td>
+            <td class="val-neg">−39,509</td>
+            <td class="sep-total val-neg">−35,055</td>
+            <td class="val-neg">−37,936</td>
+            <td class="sep-nr val-neg">−5,584</td>
+            <td class="val-neg">−2,703</td>
+          </tr>
+
+          <tr class="row-pct">
+            <td class="row-label">% of OI</td>
+            <td class="sep-nc">26.8%</td>
+            <td>26.5%</td>
+            <td>2.8%</td>
+            <td class="sep-comm">58.2%</td>
+            <td>60.8%</td>
+            <td class="sep-total">87.9%</td>
+            <td>90.1%</td>
+            <td class="sep-nr">12.1%</td>
+            <td>9.9%</td>
+          </tr>
+
+          <tr class="row-traders">
+            <td class="row-label">Traders (121)</td>
+            <td class="sep-nc">27</td>
+            <td>31</td>
+            <td>14</td>
+            <td class="sep-comm">46</td>
+            <td>33</td>
+            <td class="sep-total">81</td>
+            <td>70</td>
+            <td class="sep-nr">—</td>
+            <td>—</td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+</main>
+
+
+<!-- ════════════════════════════════════════════
+     SITE FOOTER
+════════════════════════════════════════════ -->
+<footer class="site-footer">
+  <div class="footer-inner">
+    <span class="footer-logo">Maksim Felix</span>
+    <nav class="footer-links">
+      <a href="/cot/">COT Data</a>
+      <a href="/analytics/">Analytics</a>
+      <a href="/signals/">Signals</a>
+      <a href="/contact/">Contact</a>
+    </nav>
+    <!-- Django: {% now "Y" %} -->
+    <span class="footer-note">Data source: CFTC.gov &nbsp;·&nbsp; © 2026 Maksim Felix</span>
+  </div>
+</footer>
+
+
+<!-- ════════════════════════════════════════════
+     LIVE SEARCH  (plain JS — no dependencies)
+════════════════════════════════════════════ -->
+<script>
+  (function () {
+    const searchInput = document.getElementById('searchInput');
+    const countLabel  = document.getElementById('countLabel');
+    const blocks      = document.querySelectorAll('.instrument-block');
+
+    searchInput.addEventListener('input', function () {
+      const q = this.value.toLowerCase().trim();
+      let visible = 0;
+
+      blocks.forEach(function (block) {
+        const name = (block.dataset.name || '').toLowerCase();
+        const code = (block.dataset.code || '').toLowerCase();
+        const match = !q || name.includes(q) || code.includes(q);
+        block.style.display = match ? '' : 'none';
+        if (match) visible++;
+      });
+
+      countLabel.textContent =
+        q ? 'Showing ' + visible + ' of ' + blocks.length + ' instruments'
+          : 'Showing ' + blocks.length + ' instruments';
+    });
+  })();
+</script>
+
+</body>
+</html>
