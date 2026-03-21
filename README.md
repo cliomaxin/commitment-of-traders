@@ -1,12 +1,6 @@
 # ══════════════════════════════════════════════════════════════════════════════
 # PROJECT CONTEXT — Maksim Felix COT Dashboard
 # ══════════════════════════════════════════════════════════════════════════════
-# Paste this entire file as context into your AI agent (Copilot Chat,
-# Cursor, Continue, Claude Dev, etc.) before asking it to fix any error.
-# The agent will understand the full structure, every file, every model
-# field, and every design decision without you having to re-explain.
-# ══════════════════════════════════════════════════════════════════════════════
-
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 1. WHAT THIS PROJECT IS
@@ -41,7 +35,7 @@ analysts use this data to gauge market sentiment and positioning extremes.
 # ─────────────────────────────────────────────────────────────────────────────
 
 """
-Language        : Python (latest installed version — NOT Python 3.7)
+Language        : Python (latest installed version — 3.15.0a7-amd64)
 Framework       : Django (latest)
 Database        : SQLite (development) / PostgreSQL (production)
 Frontend        : Plain HTML + CSS + Vanilla JavaScript (no React, no Vue)
