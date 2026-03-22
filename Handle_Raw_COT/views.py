@@ -13,6 +13,7 @@ from django.http import JsonResponse
 
 from .models import CotReport, ImportLog
 from .cot_parser import parse_cot_file_from_text
+from .excel_parser import parse_excel_file_from_bytes
 from .forms import CotUploadForm
 
 
@@ -70,10 +71,13 @@ class CotUploadView(View):
             filename = upload.name
 
             # Extension guard
-            if not (filename.lower().endswith(".htm") or
-                    filename.lower().endswith(".html")):
+            html_exts = (".htm", ".html")
+            excel_exts = (".xls", ".xlsx", ".xlsb", ".csv", ".ods")
+            if not (filename.lower().endswith(html_exts + excel_exts)):
                 all_errors.append(
-                    "{}: not an .htm/.html file — skipped.".format(filename)
+                    "{}: not a supported file type — skipped. Supported: {}".format(
+                        filename, ", ".join(html_exts + excel_exts)
+                    )
                 )
                 continue
 
@@ -87,9 +91,13 @@ class CotUploadView(View):
                 status       = "pending",
             )
 
-            # ── 2b. Read bytes → text ─────────────────────────────────────
+            # ── 2b. Read bytes → text or keep as bytes ───────────────────────
             try:
-                html_text = upload.read().decode("utf-8", errors="replace")
+                file_bytes = upload.read()
+                if filename.lower().endswith((".htm", ".html")):
+                    html_text = file_bytes.decode("utf-8", errors="replace")
+                else:
+                    html_text = None  # for Excel files
             except Exception as exc:
                 err_msg = "{}: could not read file — {}".format(filename, exc)
                 all_errors.append(err_msg)
@@ -98,7 +106,10 @@ class CotUploadView(View):
 
             # ── 2c. Parse ────────────────────────────────────────────────
             try:
-                records = parse_cot_file_from_text(html_text, source_file=filename)
+                if filename.lower().endswith((".htm", ".html")):
+                    records = parse_cot_file_from_text(html_text, source_file=filename)
+                else:
+                    records = parse_excel_file_from_bytes(file_bytes, filename=filename)
             except Exception as exc:
                 err_msg = "{}: parse error — {}".format(filename, exc)
                 all_errors.append(err_msg)
@@ -108,7 +119,8 @@ class CotUploadView(View):
             if not records:
                 err_msg = (
                     "{}: no target instruments found. "
-                    "Make sure you are uploading deacmesf.htm or deacmxsf.htm."
+                    "For HTML files, make sure you are uploading deacmesf.htm or deacmxsf.htm. "
+                    "For Excel files, ensure they contain futures data for the target instruments."
                 ).format(filename)
                 all_errors.append(err_msg)
                 log.mark_complete(created=0, updated=0, errors=err_msg)

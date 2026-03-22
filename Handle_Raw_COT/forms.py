@@ -15,7 +15,7 @@ from django import forms
 
 class MultipleFileInput(forms.FileInput):
     """
-    Renders:  <input type="file" name="files" multiple accept=".htm,.html">
+    Renders:  <input type="file" name="files" multiple accept=".htm,.html,.xls,.xlsx,.xlsb,.csv,.ods">
 
     Inherits from forms.FileInput (NOT ClearableFileInput).
     ClearableFileInput raises ValueError on multiple=True in older Django.
@@ -23,7 +23,7 @@ class MultipleFileInput(forms.FileInput):
     allow_multiple_selected = True
 
     def __init__(self, attrs=None):
-        final_attrs = {"accept": ".htm,.html", "multiple": "multiple"}
+        final_attrs = {"accept": ".htm,.html,.xls,.xlsx,.xlsb,.csv,.ods", "multiple": "multiple"}
         if attrs:
             final_attrs.update(attrs)
         # Call parent FileInput.__init__ — never touches ClearableFileInput
@@ -86,10 +86,12 @@ class CotUploadForm(forms.Form):
     """
 
     files = MultipleFileField(
-        label="CFTC HTML Files",
+        label="CFTC Files",
         help_text=(
-            "Select one or more CFTC futures files  "
-            "(deacmesf.htm for FX + Bitcoin,  deacmxsf.htm for Gold + Silver)"
+            "Select one or more CFTC files: HTML (.htm/.html) for current reports, "
+            "or Excel (.xls/.xlsx/.xlsb/.csv/.ods) for historical data. "
+            "HTML: deacmesf.htm (FX + Bitcoin), deacmxsf.htm (Gold + Silver). "
+            "Excel: Download from https://www.cftc.gov/MarketReports/CommitmentsofTraders/HistoricalCompressed/"
         ),
         required=True,
     )
@@ -97,7 +99,7 @@ class CotUploadForm(forms.Form):
     def clean_files(self):
         """
         Validates the first file Django sees.
-        Extension must be .htm or .html.
+        Extension must be .htm, .html, .xls, .xlsx, .xlsb, .csv, or .ods.
         All other files are validated individually in the view.
         """
         f = self.cleaned_data.get("files")
@@ -105,8 +107,9 @@ class CotUploadForm(forms.Form):
             raise forms.ValidationError("Please select at least one file.")
 
         name = f.name.lower()
-        if not (name.endswith(".htm") or name.endswith(".html")):
+        valid_exts = (".htm", ".html", ".xls", ".xlsx", ".xlsb", ".csv", ".ods")
+        if not name.endswith(valid_exts):
             raise forms.ValidationError(
-                "Only .htm or .html files are accepted. Received: {}".format(f.name)
+                "Only .htm, .html, .xls, .xlsx, .xlsb, .csv, or .ods files are accepted. Received: {}".format(f.name)
             )
         return f

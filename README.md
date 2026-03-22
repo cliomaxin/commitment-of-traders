@@ -4,7 +4,9 @@ This Django-based web application processes, stores, and visualizes CFTC Commitm
 Core Functionality
 Data Processing Pipeline
 
-    Automated HTML Parsing: Downloads and parses fixed-width HTML reports directly from cftc.gov.
+    Automated Parsing: Downloads and parses CFTC reports in multiple formats:
+        - HTML reports (current weekly data)
+        - Excel spreadsheets (.xls, .xlsx, .xlsb, .csv, .ods for historical data)
 
     Targeted Instrument Extraction: Focuses on 10 specific instruments:
 
@@ -14,7 +16,7 @@ Data Processing Pipeline
 
         Crypto (1): Bitcoin
 
-    Data Normalization: Converts raw HTML data into structured database records for consistency.
+    Data Normalization: Converts raw data into structured database records for consistency.
 
 Data Storage & Management
 
@@ -43,7 +45,9 @@ User Interfaces
 Technical Architecture
 Backend (Handle_Raw_COT App)
 
-    Custom HTML Parser: Specifically designed for the CFTC's unique fixed-width formatting.
+    Custom Parsers: 
+        - HTML Parser: Specifically designed for the CFTC's unique fixed-width formatting
+        - Excel Parser: Handles multiple spreadsheet formats for historical data import
 
     Django Models: Built with complex relationships, constraints, and optimized indexing.
 

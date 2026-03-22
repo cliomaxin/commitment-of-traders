@@ -19,5 +19,5 @@ from django.urls import path, include
 urlpatterns = [
     path('management/', admin.site.urls),
     path('Handle_Raw_COT/', include('Handle_Raw_COT.urls')),
-    path('', include('Display_Data.urls'))
+    path('', include(('Display_Data.urls', 'Display_Data'), namespace='Display_Data'))
 ]

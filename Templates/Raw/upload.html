@@ -182,6 +182,7 @@
     .source-table td { color: var(--text); }
     .source-table td.file-name { color: var(--gold); }
     .source-table td.file-tags { color: var(--text-2); }
+    .source-table td.file-source { color: var(--cyan); font-size: 0.75rem; }
     .source-table tr:last-child td { border-bottom: none; }
 
     .source-url {
@@ -365,7 +366,7 @@
     </a>
     <nav>
       <a href="{% url 'Handle_Raw_COT:upload' %}" class="active">Import</a>
-      <a href="/cot/">COT Data</a>
+      <a href="{% url 'Display_Data:dashboard' %}">COT Data</a>
       <a href="/analytics/">Analytics</a>
       <a href="/signals/">Signals</a>
       <a href="/contact/">Contact</a>
@@ -382,7 +383,7 @@
 
   <div class="page-title">
     <h1>Import <em>COT Data</em></h1>
-    <p>Upload downloaded CFTC HTML files — the engine extracts your 10 instruments and saves them to the database.</p>
+    <p>Upload downloaded CFTC files — the engine extracts your 10 instruments and saves them to the database.</p>
   </div>
 
   <div class="grid">
@@ -395,16 +396,16 @@
         </div>
         <div class="card-body">
 
-          <form id="uploadForm" method="post" enctype="multipart/form-data" novalidate>
+          <form id="uploadForm" method="post" action="{% url 'Handle_Raw_COT:upload' %}" enctype="multipart/form-data" novalidate>
             {% csrf_token %}
 
             <!-- Drop zone -->
             <div class="drop-zone" id="dropZone">
               <input type="file" name="files" id="fileInput"
-                     accept=".htm,.html" multiple />
+                     accept=".htm,.html,.xls,.xlsx,.xlsb,.csv,.ods" multiple />
               <span class="drop-icon">📂</span>
-              <div class="drop-label">Drop CFTC .htm files here, or click to browse</div>
-              <div class="drop-hint">Multiple files supported &nbsp;·&nbsp; .htm and .html only</div>
+              <div class="drop-label">Drop CFTC files here, or click to browse</div>
+              <div class="drop-hint">Multiple files supported &nbsp;·&nbsp; .htm, .html, .xls, .xlsx, .xlsb, .csv, .ods</div>
             </div>
 
             <!-- Selected files preview -->
@@ -441,24 +442,27 @@
           <table class="source-table">
             <thead>
               <tr>
-                <th>File</th>
+                <th>File Type</th>
                 <th>Instruments Inside</th>
+                <th>Source</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td class="file-name">deacmesf.htm</td>
-                <td class="file-tags">EUR · GBP · JPY · CHF · CAD · AUD · NZD · Bitcoin</td>
+                <td class="file-name">deacmesf.htm / deacmxsf.htm</td>
+                <td class="file-tags">EUR · GBP · JPY · CHF · CAD · AUD · NZD · Bitcoin · Gold · Silver</td>
+                <td class="file-source">CFTC Current Reports</td>
               </tr>
               <tr>
-                <td class="file-name">deacmxsf.htm</td>
-                <td class="file-tags">Gold · Silver</td>
+                <td class="file-name">*.xls / *.xlsx / etc.</td>
+                <td class="file-tags">EUR · GBP · JPY · CHF · CAD · AUD · NZD · Bitcoin · Gold · Silver</td>
+                <td class="file-source">CFTC Historical Data</td>
               </tr>
             </tbody>
           </table>
           <div class="source-url">
-            Download from:&nbsp;
-            <span>https://www.cftc.gov/dea/futures/</span>
+            Current: <span>https://www.cftc.gov/dea/futures/</span><br>
+            Historical: <span>https://www.cftc.gov/MarketReports/CommitmentsofTraders/HistoricalCompressed/</span>
           </div>
         </div>
       </div>
@@ -490,13 +494,11 @@
                 <td class="td-name">{{ r.name }}</td>
                 <td class="td-date">{{ r.as_of_date|date:"d M Y" }}</td>
                 <td class="td-oi">{{ r.open_interest|intcomma }}</td>
-                {% with net=r.nc_long|add:"-"|add:r.nc_short|default:0 %}
-                  {% if r.nc_long > r.nc_short %}
-                    <td class="td-nc">+{{ r.nc_long|add:"-"|add:r.nc_short|intcomma }}</td>
-                  {% else %}
-                    <td class="td-neg">{{ r.nc_long|add:"-"|add:r.nc_short|intcomma }}</td>
-                  {% endif %}
-                {% endwith %}
+                {% if r.net_nc_position >= 0 %}
+                  <td class="td-nc">+{{ r.net_nc_position|intcomma }}</td>
+                {% else %}
+                  <td class="td-neg">{{ r.net_nc_position|intcomma }}</td>
+                {% endif %}
               </tr>
               {% endfor %}
             </tbody>
@@ -511,6 +513,19 @@
 
   </div><!-- /.grid -->
 </div><!-- /.page-wrap -->
+
+<!-- ── FOOTER ── -->
+<footer style="border-top:1px solid var(--border);background:var(--bg2);padding:1.5rem 2rem;margin-top:3rem;">
+  <div style="max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
+    <span style="font-family:var(--serif);font-size:0.95rem;color:var(--text-2);">Maksim Felix</span>
+    <nav style="display:flex;gap:1.5rem;">
+      <a href="{% url 'Handle_Raw_COT:upload' %}" style="font-family:var(--mono);font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-3);">Import</a>
+      <a href="{% url 'Display_Data:dashboard' %}" style="font-family:var(--mono);font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-3);">COT Data</a>
+      <a href="/contact/" style="font-family:var(--mono);font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-3);">Contact</a>
+    </nav>
+    <span style="font-family:var(--mono);font-size:0.6rem;color:var(--text-3);">Data: CFTC.gov &nbsp;·&nbsp; © {% now "Y" %} Maksim Felix</span>
+  </div>
+</footer>
 
 
 <script>
@@ -562,7 +577,10 @@
 
   function addFiles(files) {
     const valid = files.filter(f =>
-      f.name.toLowerCase().endsWith(".htm") || f.name.toLowerCase().endsWith(".html")
+      f.name.toLowerCase().endsWith(".htm") || f.name.toLowerCase().endsWith(".html") ||
+      f.name.toLowerCase().endsWith(".xls") || f.name.toLowerCase().endsWith(".xlsx") ||
+      f.name.toLowerCase().endsWith(".xlsb") || f.name.toLowerCase().endsWith(".csv") ||
+      f.name.toLowerCase().endsWith(".ods")
     );
     // Deduplicate by name
     valid.forEach(f => {
@@ -777,8 +795,14 @@
 
   /* ── Helpers ── */
   function getCsrf() {
+    // Read from the hidden {% csrf_token %} input Django renders in the form.
+    // This is more reliable than cookie access which may be blocked by
+    // browser settings or Django's CSRF_COOKIE_HTTPONLY=True.
     const el = document.querySelector("[name=csrfmiddlewaretoken]");
-    return el ? el.value : "";
+    if (el) return el.value;
+    // Fallback: read from cookie
+    const match = document.cookie.match(/csrftoken=([^;]+)/);
+    return match ? match[1] : "";
   }
 
   function escHtml(str) {
