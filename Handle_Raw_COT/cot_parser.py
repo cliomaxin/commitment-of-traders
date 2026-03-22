@@ -1,6 +1,4 @@
 """
-cot_parser.py
-=============
 Parses CFTC Commitments of Traders HTML files (the fixed-width <pre> block
 format served at cftc.gov) and extracts the nine instruments you care about:
 

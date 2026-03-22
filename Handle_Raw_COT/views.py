@@ -1,5 +1,3 @@
-# cot/views.py
-# ─────────────────────────────────────────────────────────────────────────────
 # Compatible with Python 3.7 and all Django versions (2.x, 3.x, 4.x).
 #
 # Changes from previous version:
@@ -32,7 +30,7 @@ def _is_ajax(request):
 
 
 class CotUploadView(View):
-    template_name = "Raw/upload.html"  # Changed from "cot/upload.html"
+    template_name = "Raw/upload.html"
 
     # ── GET — render the empty upload form ───────────────────────────────────
     def get(self, request):
