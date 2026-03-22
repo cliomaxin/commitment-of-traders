@@ -40,7 +40,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django.contrib.humanize', 
     'Handle_Raw_COT',
-    'Display_Data'
+    'Display_Data',
+    'Historical_Data'
 ]
 
 MIDDLEWARE = [
