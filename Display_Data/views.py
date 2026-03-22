@@ -48,3 +48,56 @@ def date_detail(request, date_str):
         return render(request, 'Display/date_list.html', {
             'error': 'Invalid date format',
         })
+
+def analysis(request):
+    # Get the latest date
+    latest_date = CotReport.objects.order_by('-as_of_date').values_list('as_of_date', flat=True).first()
+    if latest_date:
+        reports = CotReport.objects.filter(as_of_date=latest_date).order_by('name')
+    else:
+        reports = CotReport.objects.none()
+    
+    # Determine signals for each report
+    for report in reports:
+        if report.asset_class == 'forex':
+            if report.nc_long > report.nc_short and report.comm_short > report.comm_long:
+                report.signal = 'Buying'
+                report.signal_color = 'green'
+            elif report.nc_short > report.nc_long and report.comm_long > report.comm_short:
+                report.signal = 'Selling'
+                report.signal_color = 'red'
+            else:
+                report.signal = 'Confused'
+                report.signal_color = 'orange'
+        elif report.asset_class in ['metal', 'crypto']:
+            if report.comm_long > report.comm_short and report.nc_short > report.nc_long:
+                report.signal = 'Buying'
+                report.signal_color = 'green'
+            elif report.comm_short > report.comm_long and report.nc_long > report.nc_short:
+                report.signal = 'Selling'
+                report.signal_color = 'red'
+            else:
+                report.signal = 'Confused'
+                report.signal_color = 'orange'
+        else:
+            report.signal = 'Confused'
+            report.signal_color = 'orange'
+    
+    # Create summary lists
+    buying = [report.get_name_display() for report in reports if report.signal == 'Buying']
+    confused = [report.get_name_display() for report in reports if report.signal == 'Confused']
+    selling = [report.get_name_display() for report in reports if report.signal == 'Selling']
+    
+    # Get all available dates for navigation
+    all_dates = CotReport.objects.order_by('-as_of_date').values_list('as_of_date', flat=True).distinct()
+    
+    return render(request, 'Display/analysis.html', {
+        'reports': reports,
+        'instruments_count': reports.count(),
+        'latest_date': latest_date,
+        'all_dates': all_dates,
+        'buying': buying,
+        'confused': confused,
+        'selling': selling,
+    })
+

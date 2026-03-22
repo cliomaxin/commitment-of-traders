@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Maksim Felix — COT Analysis | CME Futures</title>
+  {% load humanize %}
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ─────────────────────────────────────────────
+       DESIGN TOKENS
+    ───────────────────────────────────────────── */
+    :root {
+      --bg:           #f4f1eb;
+      --bg-dark:      #1a1a18;
+      --surface:      #ffffff;
+      --surface-alt:  #ede9e0;
+      --border:       #d8d2c4;
+      --border-heavy: #b0a890;
+
+      --ink:          #1a1a18;
+      --ink-muted:    #5c5849;
+      --ink-faint:    #9e9888;
+
+      --gold:         #8b6914;
+      --gold-light:   #c9a64a;
+      --green:        #2d6a4f;
+      --green-bg:     #eaf4ef;
+      --red:          #8b2020;
+      --red-bg:       #fdf0f0;
+
+      --font-display: 'DM Serif Display', Georgia, serif;
+      --font-mono:    'DM Mono', 'Courier New', monospace;
+      --font-sans:    'DM Sans', system-ui, sans-serif;
+
+      --radius:       3px;
+      --shadow:       0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.04);
+    }
+
+    /* ─────────────────────────────────────────────
+       RESET & BASE
+    ───────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    /* ─────────────────────────────────────────────
+       HEADER / NAV
+    ───────────────────────────────────────────── */
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      background: var(--bg-dark);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .header-inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 2rem;
+      height: 58px;
+      display: flex;
+      align-items: center;
+      gap: 2.5rem;
+    }
+
+    /* Logo */
+    .logo {
+      display: flex;
+      flex-direction: column;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .logo-name {
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      color: #f4f1eb;
+      letter-spacing: -0.01em;
+    }
+    .logo-tag {
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--gold-light);
+      margin-top: 1px;
+    }
+
+    /* Primary nav */
+    .nav-primary {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      flex: 1;
+    }
+    .nav-primary a {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(244,241,235,0.5);
+      padding: 0.4rem 0.9rem;
+      border-radius: var(--radius);
+      transition: color 0.15s, background 0.15s;
+    }
+    .nav-primary a:hover,
+    .nav-primary a.active {
+      color: #f4f1eb;
+      background: rgba(255,255,255,0.07);
+    }
+    .nav-primary a.active {
+      color: var(--gold-light);
+    }
+
+    /* Header right */
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-left: auto;
+    }
+
+    .report-date {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      color: rgba(244,241,235,0.35);
+      text-transform: uppercase;
+    }
+
+    .btn-contact {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--gold-light);
+      border: 1px solid rgba(201,166,74,0.35);
+      padding: 0.38rem 1rem;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: all 0.15s;
+      background: transparent;
+    }
+    .btn-contact:hover {
+      background: var(--gold-light);
+      color: var(--bg-dark);
+      border-color: var(--gold-light);
+    }
+
+    /* ─────────────────────────────────────────────
+       PAGE HERO / CONTEXT BAND
+    ───────────────────────────────────────────── */
+    .page-hero {
+      background: var(--bg-dark);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      padding: 1.75rem 2rem 1.5rem;
+    }
+    .page-hero-inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+    }
+
+    .page-hero h1 {
+      font-family: var(--font-display);
+      font-size: 1.85rem;
+      color: #f4f1eb;
+      font-weight: 400;
+      line-height: 1.15;
+      margin-bottom: 0.35rem;
+    }
+    .page-hero h1 em {
+      font-style: italic;
+      color: var(--gold-light);
+    }
+
+    .hero-sub {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(244,241,235,0.35);
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .hero-stats {
+      display: flex;
+      gap: 2rem;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+    .hero-stat { text-align: right; }
+    .hero-stat-label {
+      font-family: var(--font-mono);
+      font-size: 0.58rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: rgba(244,241,235,0.3);
+      margin-bottom: 0.2rem;
+    }
+    .hero-stat-value {
+      font-family: var(--font-mono);
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: var(--gold-light);
+    }
+
+    /* ─────────────────────────────────────────────
+       TOOLBAR  (filter / search / count)
+    ───────────────────────────────────────────── */
+    .toolbar {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .toolbar-search {
+      position: relative;
+      flex: 1;
+      min-width: 200px;
+      max-width: 360px;
+    }
+    .toolbar-search input {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--ink);
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      padding: 0.5rem 0.85rem 0.5rem 2.2rem;
+      border-radius: var(--radius);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .toolbar-search input:focus { border-color: var(--gold); }
+    .toolbar-search input::placeholder { color: var(--ink-faint); }
+    .toolbar-search-icon {
+      position: absolute;
+      left: 0.7rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--ink-faint);
+      font-size: 0.75rem;
+      pointer-events: none;
+    }
+
+    .toolbar-count {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      color: var(--ink-faint);
+      margin-left: auto;
+    }
+
+    /* ─────────────────────────────────────────────
+       MAIN LAYOUT
+    ───────────────────────────────────────────── */
+    .page-body {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 2rem 2rem 4rem;
+    }
+
+    /* ─────────────────────────────────────────────
+       INSTRUMENT BLOCK  (one per instrument)
+    ───────────────────────────────────────────── */
+    .instrument-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      margin-bottom: 1.5rem;
+      overflow: hidden;
+    }
+
+    /* Instrument header bar */
+    .instrument-header {
+      background: var(--surface-alt);
+      border-bottom: 1px solid var(--border);
+      padding: 0.75rem 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .instrument-code {
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      letter-spacing: 0.14em;
+      color: var(--ink-faint);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      padding: 0.18rem 0.5rem;
+      border-radius: 2px;
+    }
+
+    .instrument-name {
+      font-family: var(--font-display);
+      font-size: 1.05rem;
+      color: var(--ink);
+      flex: 1;
+    }
+
+    .instrument-spec {
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      color: var(--ink-faint);
+      letter-spacing: 0.06em;
+    }
+
+    .instrument-oi {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+    .oi-label {
+      font-family: var(--font-mono);
+      font-size: 0.55rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+    }
+    .oi-value {
+      font-family: var(--font-mono);
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: var(--gold);
+    }
+
+    .instrument-asof {
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      letter-spacing: 0.1em;
+      color: var(--green);
+      padding: 0.18rem 0.5rem;
+      border: 1px solid rgba(45,106,79,0.25);
+      border-radius: 2px;
+      background: var(--green-bg);
+    }
+
+    /* ─────────────────────────────────────────────
+       THE ONE STANDARD TABLE
+       ─────────────────────
+       Column order mirrors the CFTC source exactly:
+         [row_label]
+         NC Long | NC Short | NC Spreads
+         Comm Long | Comm Short
+         Total Long | Total Short
+         NR Long | NR Short
+    ───────────────────────────────────────────── */
+    .cot-table-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .cot-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      min-width: 800px;
+    }
+
+    /* ── Column group header row ── */
+    .cot-table thead tr.thead-groups th {
+      padding: 0.55rem 0.75rem 0.3rem;
+      font-size: 0.58rem;
+      font-weight: 500;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      text-align: center;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    .cot-table thead tr.thead-groups th.col-label { text-align: left; color: transparent; }
+    .cot-table thead tr.thead-groups th.col-nc     { color: var(--gold);    background: #fdf8ee; border-left: 2px solid var(--gold-light); }
+    .cot-table thead tr.thead-groups th.col-comm   { color: #1a5276;        background: #eaf4fb; border-left: 2px solid #5dade2; }
+    .cot-table thead tr.thead-groups th.col-total  { color: var(--ink-muted); background: var(--surface-alt); border-left: 2px solid var(--border-heavy); }
+    .cot-table thead tr.thead-groups th.col-nr     { color: var(--ink-faint); background: var(--surface); border-left: 2px solid var(--border); }
+
+    /* ── Sub-header (Long / Short / Spreads) ── */
+    .cot-table thead tr.thead-cols th {
+      padding: 0.3rem 0.75rem 0.5rem;
+      font-size: 0.6rem;
+      font-weight: 400;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+      text-align: right;
+      background: var(--surface);
+      border-bottom: 2px solid var(--border-heavy);
+      white-space: nowrap;
+    }
+    .cot-table thead tr.thead-cols th.col-label-sub {
+      text-align: left;
+      color: var(--ink-muted);
+    }
+    .cot-table thead tr.thead-cols th.sep-nc    { border-left: 2px solid var(--gold-light); }
+    .cot-table thead tr.thead-cols th.sep-comm  { border-left: 2px solid #5dade2; }
+    .cot-table thead tr.thead-cols th.sep-total { border-left: 2px solid var(--border-heavy); }
+    .cot-table thead tr.thead-cols th.sep-nr    { border-left: 2px solid var(--border); }
+
+    /* ── Body rows ── */
+    .cot-table tbody tr {
+      border-bottom: 1px solid rgba(216,210,196,0.45);
+      transition: background 0.1s;
+    }
+    .cot-table tbody tr:last-child { border-bottom: none; }
+    .cot-table tbody tr:hover td { background: rgba(139,105,20,0.025); }
+
+    .cot-table tbody td {
+      padding: 0.55rem 0.75rem;
+      text-align: right;
+      color: var(--ink);
+      white-space: nowrap;
+    }
+
+    /* Row label cell */
+    .cot-table tbody td.row-label {
+      text-align: left;
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+      padding-left: 1.25rem;
+      white-space: nowrap;
+      width: 11rem;
+    }
+
+    /* Column group separators on body cells */
+    .cot-table tbody td.sep-nc    { border-left: 2px solid rgba(201,166,74,0.2); }
+    .cot-table tbody td.sep-comm  { border-left: 2px solid rgba(93,173,226,0.2); }
+    .cot-table tbody td.sep-total { border-left: 2px solid rgba(176,168,144,0.35); }
+    .cot-table tbody td.sep-nr    { border-left: 2px solid var(--border); }
+
+    /* Positive / Negative change colouring */
+    .val-pos { color: var(--green) !important; }
+    .val-neg { color: var(--red)   !important; }
+    .val-zero { color: var(--ink-faint) !important; }
+
+    /* Row-type visual hints */
+    .cot-table tbody tr.row-commitments td { color: var(--ink); font-weight: 500; }
+    .cot-table tbody tr.row-commitments td.row-label { color: var(--ink-muted); font-weight: 500; }
+
+    .cot-table tbody tr.row-change td { font-size: 0.72rem; }
+    .cot-table tbody tr.row-pct   td { color: var(--ink-muted); font-size: 0.7rem; }
+    .cot-table tbody tr.row-traders td { color: var(--ink-faint); font-size: 0.7rem; }
+    .cot-table tbody tr.row-traders td.row-label { font-weight: 400; }
+
+    /* Subtle zebra on row groups */
+    .cot-table tbody tr.row-pct td     { background: rgba(0,0,0,0.012); }
+    .cot-table tbody tr.row-traders td { background: rgba(0,0,0,0.018); }
+    .cot-table tbody tr.row-signal td { color: var(--ink); font-weight: 500; }
+    .cot-table tbody tr.row-signal td.row-label { color: var(--ink-muted); font-weight: 500; }
+
+    /* ─────────────────────────────────────────────
+       SUMMARY SECTION
+    ───────────────────────────────────────────── */
+    .summary-section {
+      margin-top: 3rem;
+      padding: 2rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .summary-section h2 {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      color: var(--ink);
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+    .summary-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      margin: 0 auto;
+      max-width: 600px;
+    }
+    .summary-table th {
+      background: var(--surface-alt);
+      border: 1px solid var(--border);
+      padding: 0.75rem;
+      text-align: center;
+      font-weight: 500;
+      color: var(--ink);
+    }
+    .summary-table td {
+      border: 1px solid var(--border);
+      padding: 0.75rem;
+      vertical-align: top;
+      color: var(--ink);
+    }
+    .site-footer {
+      background: var(--bg-dark);
+      border-top: 1px solid rgba(255,255,255,0.05);
+      padding: 2rem;
+      margin-top: 3rem;
+    }
+    .footer-inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .footer-logo {
+      font-family: var(--font-display);
+      font-size: 1rem;
+      color: rgba(244,241,235,0.4);
+    }
+    .footer-links {
+      display: flex;
+      gap: 2rem;
+    }
+    .footer-links a {
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(244,241,235,0.25);
+      transition: color 0.15s;
+    }
+    .footer-links a:hover { color: rgba(244,241,235,0.6); }
+    .footer-note {
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      color: rgba(244,241,235,0.2);
+      letter-spacing: 0.06em;
+    }
+
+    /* ─────────────────────────────────────────────
+       RESPONSIVE
+    ───────────────────────────────────────────── */
+    @media (max-width: 768px) {
+      .header-inner { padding: 0 1rem; gap: 1rem; }
+      .nav-primary  { display: none; }
+      .page-body    { padding: 1.25rem 1rem 3rem; }
+      .page-hero    { padding: 1.25rem 1rem 1rem; }
+      .toolbar      { padding: 0.75rem 1rem; }
+      .hero-stats   { display: none; }
+      .instrument-header { padding: 0.65rem 1rem; }
+      .instrument-spec   { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════
+     SITE HEADER
+════════════════════════════════════════════ -->
+<header class="site-header">
+  <div class="header-inner">
+
+    <!-- Logo -->
+    <a href="/" class="logo">
+      <span class="logo-name">Maksim Felix</span>
+      <span class="logo-tag">Markets Intelligence</span>
+    </a>
+
+    <!-- Primary navigation -->
+    <nav class="nav-primary">
+      <!-- Django: set class="active" on the link matching the current page -->
+      <a href="/"        class="">COT Data</a>
+      <a href="/dates/"  class="">Historical COT Reports</a>
+      <a href="/analysis/" class="active">Analytics</a>
+      <a href="/signals/">  Signals</a>
+      <a href="/contact/">  Contact</a>
+    </nav>
+
+    <!-- Right side -->
+    <div class="header-right">
+      <!-- Django: {{ report.as_of_date|date:"M d, Y" }} -->
+      <span class="report-date">Report: {% if latest_date %}{{ latest_date|date:"M d, Y" }}{% else %}N/A{% endif %}</span>
+      <a href="/contact/" class="btn-contact">Contact</a>
+    </div>
+
+  </div>
+</header>
+
+
+<!-- ════════════════════════════════════════════
+     PAGE HERO
+════════════════════════════════════ -->
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div>
+      <h1>Commitments of Traders — <em>Analysis</em></h1>
+      <div class="hero-sub">
+        <!-- Django: {{ report.exchange }} · {{ report.report_type }} · Updated {{ report.updated|date:"M d, Y" }} -->
+        <span>Chicago Mercantile Exchange</span>
+        <span>Futures Only</span>
+        <span>{% if is_historical %}Historical Report{% else %}Latest Report{% endif %} — {{ latest_date|date:"M d, Y" }}</span>
+      </div>
+    </div>
+    <div class="hero-stats">
+      <!-- Django: {{ instruments|length }} instruments -->
+      <div class="hero-stat">
+        <div class="hero-stat-label">Instruments</div>
+        <div class="hero-stat-value">{{ instruments_count|default:0 }}</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-label">Source</div>
+        <div class="hero-stat-value" style="font-size:0.8rem;padding-top:4px;">CFTC.gov</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════════════
+     TOOLBAR
+════════════════════════════════════════════ -->
+<div class="toolbar">
+  <div class="toolbar-search">
+    <span class="toolbar-search-icon">&#9906;</span>
+    <input type="text" id="searchInput" placeholder="Filter instruments…" autocomplete="off" />
+  </div>
+  <!-- Django: Showing {{ instruments|length }} instruments -->
+  <span class="toolbar-count" id="countLabel">Showing {{ instruments_count|default:0 }} instruments</span>
+  <a href="/dates/" style="font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold); border: 1px solid var(--gold-light); padding: 0.4rem 0.8rem; border-radius: var(--radius); transition: all 0.15s; background: transparent;" onmouseover="this.style.background='var(--gold)'; this.style.color='var(--bg)'; this.style.borderColor='var(--gold)';" onmouseout="this.style.background='transparent'; this.style.color='var(--gold)'; this.style.borderColor='var(--gold-light)';">Historical Data</a>
+</div>
+
+
+<!-- ════════════════════════════════════════════
+     MAIN CONTENT
+     ─────────────────────────────────────────
+     Django template loop pattern:
+       {% verbatim %}{% for instrument in instruments %}
+         … copy the .instrument-block below …
+       {% endfor %}{% endverbatim %}
+════════════════════════════════════════════ -->
+<main class="page-body" id="mainContent">
+
+  <!--
+  ┌──────────────────────────────────────────────────────────────────┐
+  │  DJANGO TEMPLATE LOOP — replicate this block for every row      │
+  │  {% verbatim %}{% for instrument in instruments %}{% endverbatim %}                             │
+  └──────────────────────────────────────────────────────────────────┘
+
+  Django context variables expected per instrument:
+    instrument.name            — e.g. "Canadian Dollar"
+    instrument.code            — e.g. "090741"
+    instrument.exchange        — e.g. "CHICAGO MERCANTILE EXCHANGE"
+    instrument.contract_spec   — e.g. "CONTRACTS OF CAD 100,000"
+    instrument.as_of_date      — date object  (03/17/26)
+    instrument.prev_date       — date object  (03/10/26)
+    instrument.open_interest   — integer
+    instrument.oi_change       — integer (signed)
+
+    — Commitments row —
+    instrument.nc_long         instrument.nc_short   instrument.nc_spreads
+    instrument.comm_long       instrument.comm_short
+    instrument.total_long      instrument.total_short
+    instrument.nr_long         instrument.nr_short
+
+    — Changes row —
+    instrument.chg_nc_long     instrument.chg_nc_short   instrument.chg_nc_spreads
+    instrument.chg_comm_long   instrument.chg_comm_short
+    instrument.chg_total_long  instrument.chg_total_short
+    instrument.chg_nr_long     instrument.chg_nr_short
+
+    — % of OI row —
+    instrument.pct_nc_long     instrument.pct_nc_short   instrument.pct_nc_spreads
+    instrument.pct_comm_long   instrument.pct_comm_short
+    instrument.pct_total_long  instrument.pct_total_short
+    instrument.pct_nr_long     instrument.pct_nr_short
+
+    — Traders row —
+    instrument.traders_total
+    instrument.trd_nc_long     instrument.trd_nc_short   instrument.trd_nc_spreads
+    instrument.trd_comm_long   instrument.trd_comm_short
+    instrument.trd_total_long  instrument.trd_total_short
+
+  Django filter helpers you can add:
+    {% if value > 0 %}val-pos{% elif value < 0 %}val-neg{% else %}val-zero{% endif %}
+    {# {{ value|intcomma }} #}
+  -->
+
+  <!-- ═══ ONE SAMPLE INSTRUMENT BLOCK (Canadian Dollar) ═══════════
+       Duplicate / loop this in Django for every instrument.
+       Replace hardcoded values with {{ instrument.field }} tags.
+  ═══════════════════════════════════════════════════════════════ -->
+  {% for instrument in reports %}
+  <div class="instrument-block" data-name="{{ instrument.name|lower }}" data-code="{{ instrument.code }}">
+
+    <!-- ── Block header ── -->
+    <div class="instrument-header">
+      <!-- Django: {{ instrument.code }} -->
+      <span class="instrument-code">{{ instrument.code }}</span>
+
+      <!-- Django: {{ instrument.name }} -->
+      <span class="instrument-name">{{ instrument.get_name_display|default:instrument.name }}</span>
+
+      <!-- Django: {{ instrument.contract_spec }} -->
+      <span class="instrument-spec">{{ instrument.contract_spec }}</span>
+
+      <div class="instrument-oi">
+        <span class="oi-label">Open Interest</span>
+        <!-- Django: {{ instrument.open_interest|intcomma }} -->
+        <span class="oi-value">{{ instrument.open_interest|intcomma }}</span>
+      </div>
+
+      <!-- Django: {{ instrument.as_of_date|date:"m/d/y" }} -->
+      <span class="instrument-asof">As of {{ instrument.as_of_date|date:"m/d/y" }}</span>
+    </div><!-- /.instrument-header -->
+
+
+    <!-- ══════════════════════════════════════════════════════════
+         THE ONE STANDARD TABLE
+         ─────────────────────
+         This exact <table> structure is reused for every instrument.
+         Only the data values change — the thead is always identical.
+    ══════════════════════════════════════════════════════════════ -->
+    <div class="cot-table-wrap">
+      <table class="cot-table">
+
+        <!-- ── Column-group header ── -->
+        <thead>
+          <tr class="thead-groups">
+            <th class="col-label"></th>
+
+            <!-- Non-Commercial spans 3 sub-columns -->
+            <th class="col-nc" colspan="3">Non-Commercial</th>
+
+            <!-- Commercial spans 2 sub-columns -->
+            <th class="col-comm" colspan="2">Commercial</th>
+
+            <!-- Total spans 2 sub-columns -->
+            <th class="col-total" colspan="2">Total</th>
+
+            <!-- Nonreportable spans 2 sub-columns -->
+            <th class="col-nr" colspan="2">Nonreportable</th>
+          </tr>
+
+          <!-- ── Sub-column labels ── -->
+          <tr class="thead-cols">
+            <th class="col-label-sub">Row</th>
+
+            <th class="sep-nc">Long</th>
+            <th>Short</th>
+            <th>Spreads</th>
+
+            <th class="sep-comm">Long</th>
+            <th>Short</th>
+
+            <th class="sep-total">Long</th>
+            <th>Short</th>
+
+            <th class="sep-nr">Long</th>
+            <th>Short</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          <!-- ── ROW 1 : Commitments ──────────────────────────────── -->
+          <!--
+            Django: <tr class="row-commitments">
+              <td class="row-label">Commitments</td>
+              <td class="sep-nc">{{ instrument.nc_long|intcomma }}</td>
+              <td>{{ instrument.nc_short|intcomma }}</td>
+              <td>{{ instrument.nc_spreads|intcomma }}</td>
+              <td class="sep-comm">{{ instrument.comm_long|intcomma }}</td>
+              <td>{{ instrument.comm_short|intcomma }}</td>
+              <td class="sep-total">{{ instrument.total_long|intcomma }}</td>
+              <td>{{ instrument.total_short|intcomma }}</td>
+              <td class="sep-nr">{{ instrument.nr_long|intcomma }}</td>
+              <td>{{ instrument.nr_short|intcomma }}</td>
+            </tr>
+          -->
+          <tr class="row-commitments">
+            <td class="row-label">Commitments</td>
+            <td class="sep-nc">{{ instrument.nc_long|intcomma }}</td>
+            <td>{{ instrument.nc_short|intcomma }}</td>
+            <td>{{ instrument.nc_spreads|intcomma }}</td>
+            <td class="sep-comm">{{ instrument.comm_long|intcomma }}</td>
+            <td>{{ instrument.comm_short|intcomma }}</td>
+            <td class="sep-total">{{ instrument.total_long|intcomma }}</td>
+            <td>{{ instrument.total_short|intcomma }}</td>
+            <td class="sep-nr">{{ instrument.nr_long|intcomma }}</td>
+            <td>{{ instrument.nr_short|intcomma }}</td>
+          </tr>
+
+          <!-- ── ROW 2 : Changes from prior week ──────────────────── -->
+          <!--
+            Django tip: for each change cell add CSS class via:
+              {% if instrument.chg_nc_long > 0 %}val-pos{% elif instrument.chg_nc_long < 0 %}val-neg{% else %}val-zero{% endif %}
+
+            <tr class="row-change">
+              <td class="row-label">Change ({{ instrument.prev_date|date:"m/d/y" }})</td>
+              <td class="sep-nc {{ chg_class }}">{{ instrument.chg_nc_long|intcomma }}</td>
+              … repeat for all 9 value cells …
+            </tr>
+          -->
+          <tr class="row-change">
+            <td class="row-label">Change ({{ instrument.prev_date|date:"m/d/y" }})</td>
+            <td class="sep-nc {% if instrument.chg_nc_long > 0 %}val-pos{% elif instrument.chg_nc_long < 0 %}val-neg{% else %}val-zero{% endif %}">{{ instrument.chg_nc_long|intcomma }}</td>
+            <td class="{% if instrument.chg_nc_short > 0 %}val-pos{% elif instrument.chg_nc_short < 0 %}val-neg{% else %}val-zero{% endif %}">{{ instrument.chg_nc_short|intcomma }}</td>
+            <td class="{% if instrument.chg_nc_spreads > 0 %}val-pos{% elif instrument.chg_nc_spreads < 0 %}val-neg{% else %}val-zero{% endif %}">{{ instrument.chg_nc_spreads|intcomma }}</td>
+            <td class="sep-comm {% if instrument.chg_comm_long > 0 %}val-pos{% elif instrument.chg_comm_long < 0 %}val-neg{% else %}val-zero{% endif %}">{{ instrument.chg_comm_long|intcomma }}</td>
+            <td class="{% if instrument.chg_comm_short > 0 %}val-pos{% elif instrument.chg_comm_short < 0 %}val-neg{% else %}val-zero{% endif %}">{{ instrument.chg_comm_short|intcomma }}</td>
+            <td class="sep-total {% if instrument.chg_total_long > 0 %}val-pos{% elif instrument.chg_total_long < 0 %}val-neg{% else %}val-zero{% endif %}">{{ instrument.chg_total_long|intcomma }}</td>
+            <td class="{% if instrument.chg_total_short > 0 %}val-pos{% elif instrument.chg_total_short < 0 %}val-neg{% else %}val-zero{% endif %}">{{ instrument.chg_total_short|intcomma }}</td>
+            <td class="sep-nr {% if instrument.chg_nr_long > 0 %}val-pos{% elif instrument.chg_nr_long < 0 %}val-neg{% else %}val-zero{% endif %}">{{ instrument.chg_nr_long|intcomma }}</td>
+            <td class="{% if instrument.chg_nr_short > 0 %}val-pos{% elif instrument.chg_nr_short < 0 %}val-neg{% else %}val-zero{% endif %}">{{ instrument.chg_nr_short|intcomma }}</td>
+          </tr>
+
+          <!-- ── ROW 3 : % of Open Interest ───────────────────────── -->
+          <!--
+            <tr class="row-pct">
+              <td class="row-label">% of OI</td>
+              <td class="sep-nc">{{ instrument.pct_nc_long }}%</td>
+              <td>{{ instrument.pct_nc_short }}%</td>
+              <td>{{ instrument.pct_nc_spreads }}%</td>
+              <td class="sep-comm">{{ instrument.pct_comm_long }}%</td>
+              <td>{{ instrument.pct_comm_short }}%</td>
+              <td class="sep-total">{{ instrument.pct_total_long }}%</td>
+              <td>{{ instrument.pct_total_short }}%</td>
+              <td class="sep-nr">{{ instrument.pct_nr_long }}%</td>
+              <td>{{ instrument.pct_nr_short }}%</td>
+            </tr>
+          -->
+          <tr class="row-pct">
+            <td class="row-label">% of OI</td>
+            <td class="sep-nc">{{ instrument.pct_nc_long }}%</td>
+            <td>{{ instrument.pct_nc_short }}%</td>
+            <td>{{ instrument.pct_nc_spreads }}%</td>
+            <td class="sep-comm">{{ instrument.pct_comm_long }}%</td>
+            <td>{{ instrument.pct_comm_short }}%</td>
+            <td class="sep-total">{{ instrument.pct_total_long }}%</td>
+            <td>{{ instrument.pct_total_short }}%</td>
+            <td class="sep-nr">{{ instrument.pct_nr_long }}%</td>
+            <td>{{ instrument.pct_nr_short }}%</td>
+          </tr>
+
+          <!-- ── ROW 4 : Number of Traders ────────────────────────── -->
+          <!--
+            Note: CFTC leaves NR trader counts blank — render as em-dash.
+
+            <tr class="row-traders">
+              <td class="row-label">Traders ({{ instrument.traders_total }})</td>
+              <td class="sep-nc">{{ instrument.trd_nc_long }}</td>
+              <td>{{ instrument.trd_nc_short }}</td>
+              <td>{{ instrument.trd_nc_spreads }}</td>
+              <td class="sep-comm">{{ instrument.trd_comm_long }}</td>
+              <td>{{ instrument.trd_comm_short }}</td>
+              <td class="sep-total">{{ instrument.trd_total_long }}</td>
+              <td>{{ instrument.trd_total_short }}</td>
+              <td class="sep-nr">—</td>
+              <td>—</td>
+            </tr>
+          -->
+          <tr class="row-traders">
+            <td class="row-label">Traders ({{ instrument.traders_total }})</td>
+            <td class="sep-nc">{{ instrument.trd_nc_long }}</td>
+            <td>{{ instrument.trd_nc_short }}</td>
+            <td>{{ instrument.trd_nc_spreads }}</td>
+            <td class="sep-comm">{{ instrument.trd_comm_long }}</td>
+            <td>{{ instrument.trd_comm_short }}</td>
+            <td class="sep-total">{{ instrument.trd_total_long }}</td>
+            <td>{{ instrument.trd_total_short }}</td>
+            <td class="sep-nr">—</td>
+            <td>—</td>
+          </tr>
+
+          <!-- ── ROW 5 : Signal ────────────────────────── -->
+          <tr class="row-signal">
+            <td class="row-label">Signal</td>
+            <td colspan="9" style="text-align: center; background-color: {% if instrument.signal_color == 'green' %}#eaf4ef{% elif instrument.signal_color == 'red' %}#fdf0f0{% else %}#fff3cd{% endif %}; color: {% if instrument.signal_color == 'green' %}#2d6a4f{% elif instrument.signal_color == 'red' %}#8b2020{% else %}#856404{% endif %}; font-weight: bold;">{{ instrument.signal }}</td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div><!-- /.cot-table-wrap -->
+
+  </div><!-- /.instrument-block -->
+  {% empty %}
+    <div class="no-data">No instrument reports available yet.</div>
+  {% endfor %}
+
+  <!-- Summary Table -->
+  <div class="summary-section">
+    <h2>Signal Summary</h2>
+    <table class="summary-table">
+      <thead>
+        <tr>
+          <th>Buying</th>
+          <th>Confused</th>
+          <th>Selling</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            {% for item in buying %}
+              {{ item }}<br>
+            {% endfor %}
+          </td>
+          <td>
+            {% for item in confused %}
+              {{ item }}<br>
+            {% endfor %}
+          </td>
+          <td>
+            {% for item in selling %}
+              {{ item }}<br>
+            {% endfor %}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</main><!-- /.page-body -->
+
+
+<!-- ════════════════════════════════════════════
+     SITE FOOTER
+════════════════════════════════════════════ -->
+<footer class="site-footer">
+  <div class="footer-inner">
+    <span class="footer-logo">Maksim Felix</span>
+    <nav class="footer-links">
+      <a href="/cot/">COT Data</a>
+      <a href="/analytics/">Analytics</a>
+      <a href="/signals/">Signals</a>
+      <a href="/contact/">Contact</a>
+    </nav>
+    <!-- Django: {% now "Y" %} -->
+    <span class="footer-note">Data source: CFTC.gov &nbsp;·&nbsp; © 2026 Maksim Felix</span>
+  </div>
+</footer>
+
+
+<!-- ════════════════════════════════════════════
+     LIVE SEARCH  (plain JS — no dependencies)
+════════════════════════════════════════════ -->
+<script>
+  (function () {
+    const searchInput = document.getElementById('searchInput');
+    const countLabel  = document.getElementById('countLabel');
+    const blocks      = document.querySelectorAll('.instrument-block');
+
+    searchInput.addEventListener('input', function () {
+      const q = this.value.toLowerCase().trim();
+      let visible = 0;
+
+      blocks.forEach(function (block) {
+        const name = (block.dataset.name || '').toLowerCase();
+        const code = (block.dataset.code || '').toLowerCase();
+        const match = !q || name.includes(q) || code.includes(q);
+        block.style.display = match ? '' : 'none';
+        if (match) visible++;
+      });
+
+      countLabel.textContent =
+        q ? 'Showing ' + visible + ' of ' + blocks.length + ' instruments'
+          : 'Showing ' + blocks.length + ' instruments';
+    });
+  })();
+</script>
+
+</body>
+</html>
