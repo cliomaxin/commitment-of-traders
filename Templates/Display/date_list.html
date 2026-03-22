@@ -330,16 +330,14 @@
 
     <!-- Primary navigation -->
     <nav class="nav-primary">
-      <a href="/" class="">COT Data</a>
-      <a href="/dates/" class="active">Historical Reports</a>
-      <a href="/analytics/">Analytics</a>
-      <a href="/signals/">  Signals</a>
-      <a href="/contact/">  Contact</a>
+      {% for item in nav_items %}
+        <a href="{{ item.url }}" class="{% if request.path == item.url %}active{% endif %}">{{ item.label }}</a>
+      {% endfor %}
     </nav>
 
     <!-- Right side -->
     <div class="header-right">
-      <a href="/contact/" class="btn-contact">Contact</a>
+      <a href="https://cliomaxin.github.io/maksimfelix/patreon.html" class="btn-contact">Donate</a>
     </div>
 
   </div>
@@ -394,10 +392,9 @@
   <div class="footer-inner">
     <div class="footer-logo">Maksim Felix</div>
     <div class="footer-links">
-      <a href="/">Latest Data</a>
-      <a href="/dates/">Historical Reports</a>
-      <a href="/analytics/">Analytics</a>
-      <a href="/contact/">Contact</a>
+      {% for item in nav_items %}
+        <a href="{{ item.url }}">{{ item.label }}</a>
+      {% endfor %}
     </div>
     <div class="footer-note">Data sourced from CFTC.gov</div>
   </div>

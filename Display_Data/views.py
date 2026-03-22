@@ -14,11 +14,21 @@ def index(request):
     # Get all available dates for navigation
     all_dates = CotReport.objects.order_by('-as_of_date').values_list('as_of_date', flat=True).distinct()
     
+    # Navigation items
+    nav_items = [
+        {'url': '/', 'label': 'COT Data'},
+        {'url': '/dates/', 'label': 'Historical COT Reports'},
+        {'url': '/analysis/', 'label': 'Analytics'},
+        {'url': '/signals/', 'label': 'Signals'},
+        {'url': 'https://cliomaxin.github.io/maksimfelix/patreon.html', 'label': 'Donate'},
+    ]
+    
     return render(request, 'Display/index.html', {
         'reports': reports,
         'instruments_count': reports.count(),
         'latest_date': latest_date,
         'all_dates': all_dates,
+        'nav_items': nav_items,
     })
 
 def date_list(request):
@@ -27,8 +37,18 @@ def date_list(request):
         count=models.Count('id')
     ).order_by('-as_of_date')
     
+    # Navigation items
+    nav_items = [
+        {'url': '/', 'label': 'COT Data'},
+        {'url': '/dates/', 'label': 'Historical COT Reports'},
+        {'url': '/analysis/', 'label': 'Analytics'},
+        {'url': '/signals/', 'label': 'Signals'},
+        {'url': 'https://cliomaxin.github.io/maksimfelix/patreon.html', 'label': 'Donate'},
+    ]
+    
     return render(request, 'Display/date_list.html', {
         'dates_with_counts': dates_with_counts,
+        'nav_items': nav_items,
     })
 
 def date_detail(request, date_str):
@@ -36,12 +56,23 @@ def date_detail(request, date_str):
     try:
         date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
         reports = CotReport.objects.filter(as_of_date=date_obj).order_by('name')
+        
+        # Navigation items
+        nav_items = [
+            {'url': '/', 'label': 'COT Data'},
+            {'url': '/dates/', 'label': 'Historical COT Reports'},
+            {'url': '/analysis/', 'label': 'Analytics'},
+            {'url': '/signals/', 'label': 'Signals'},
+            {'url': 'https://cliomaxin.github.io/maksimfelix/patreon.html', 'label': 'Donate'},
+        ]
+        
         return render(request, 'Display/index.html', {
             'reports': reports,
             'instruments_count': reports.count(),
             'latest_date': date_obj,
             'all_dates': CotReport.objects.order_by('-as_of_date').values_list('as_of_date', flat=True).distinct(),
             'is_historical': True,
+            'nav_items': nav_items,
         })
     except ValueError:
         # Invalid date format
@@ -91,6 +122,15 @@ def analysis(request):
     # Get all available dates for navigation
     all_dates = CotReport.objects.order_by('-as_of_date').values_list('as_of_date', flat=True).distinct()
     
+    # Navigation items
+    nav_items = [
+        {'url': '/', 'label': 'COT Data'},
+        {'url': '/dates/', 'label': 'Historical COT Reports'},
+        {'url': '/analysis/', 'label': 'Analytics'},
+        {'url': '/signals/', 'label': 'Signals'},
+        {'url': 'https://cliomaxin.github.io/maksimfelix/patreon.html', 'label': 'Donate'},
+    ]
+    
     return render(request, 'Display/analysis.html', {
         'reports': reports,
         'instruments_count': reports.count(),
@@ -99,5 +139,6 @@ def analysis(request):
         'buying': buying,
         'confused': confused,
         'selling': selling,
+        'nav_items': nav_items,
     })
 

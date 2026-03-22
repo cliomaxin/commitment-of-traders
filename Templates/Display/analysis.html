@@ -591,19 +591,16 @@
 
     <!-- Primary navigation -->
     <nav class="nav-primary">
-      <!-- Django: set class="active" on the link matching the current page -->
-      <a href="/"        class="">COT Data</a>
-      <a href="/dates/"  class="">Historical COT Reports</a>
-      <a href="/analysis/" class="active">Analytics</a>
-      <a href="/signals/">  Signals</a>
-      <a href="/contact/">  Contact</a>
+      {% for item in nav_items %}
+        <a href="{{ item.url }}" class="{% if request.path == item.url %}active{% endif %}">{{ item.label }}</a>
+      {% endfor %}
     </nav>
 
     <!-- Right side -->
     <div class="header-right">
       <!-- Django: {{ report.as_of_date|date:"M d, Y" }} -->
       <span class="report-date">Report: {% if latest_date %}{{ latest_date|date:"M d, Y" }}{% else %}N/A{% endif %}</span>
-      <a href="/contact/" class="btn-contact">Contact</a>
+      <a href="https://cliomaxin.github.io/maksimfelix/patreon.html" class="btn-contact">Donate</a>
     </div>
 
   </div>
@@ -953,10 +950,9 @@
   <div class="footer-inner">
     <span class="footer-logo">Maksim Felix</span>
     <nav class="footer-links">
-      <a href="/cot/">COT Data</a>
-      <a href="/analytics/">Analytics</a>
-      <a href="/signals/">Signals</a>
-      <a href="/contact/">Contact</a>
+      {% for item in nav_items %}
+        <a href="{{ item.url }}">{{ item.label }}</a>
+      {% endfor %}
     </nav>
     <!-- Django: {% now "Y" %} -->
     <span class="footer-note">Data source: CFTC.gov &nbsp;·&nbsp; © 2026 Maksim Felix</span>
