@@ -377,7 +377,7 @@
     <div class="date-card">
       <h3>{{ date_info.as_of_date|date:"M d, Y" }}</h3>
       <div class="date-meta">{{ date_info.count }} instrument{{ date_info.count|pluralize }}</div>
-      <a href="{% url 'date_detail' date_info.as_of_date|date:'Y-m-d' %}" class="date-link">View Report</a>
+      <a href="{% url 'Display_Data:date_detail' date_info.as_of_date|date:'Y-m-d' %}" class="date-link">View Report</a>
     </div>
     {% endfor %}
   </div>
