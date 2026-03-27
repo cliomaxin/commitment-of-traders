@@ -9,4 +9,5 @@ urlpatterns = [
     path('dates/', views.date_list, name='date_list'),
     path('date/<str:date_str>/', views.date_detail, name='date_detail'),
     path('analysis/', views.analysis, name='analysis'),
+    path('analysis/historical/', views.analysis_historical, name='analysis_historical'),
 ]

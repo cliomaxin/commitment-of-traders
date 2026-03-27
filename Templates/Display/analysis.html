@@ -705,6 +705,11 @@
     {# {{ value|intcomma }} #}
   -->
 
+  <!-- Historical Analysis Button -->
+  <div style="text-align: center; margin-bottom: 2rem;">
+    <a href="{% url 'Display_Data:analysis_historical' %}" style="font-family: var(--font-mono); font-size: 0.8rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold); border: 1px solid var(--gold-light); padding: 0.6rem 1.2rem; border-radius: var(--radius); transition: all 0.15s; background: transparent; display: inline-block;" onmouseover="this.style.background='var(--gold)'; this.style.color='var(--bg)'; this.style.borderColor='var(--gold)';" onmouseout="this.style.background='transparent'; this.style.color='var(--gold)'; this.style.borderColor='var(--gold-light)';">View Historical Analysis</a>
+  </div>
+
   <!-- ═══ ONE SAMPLE INSTRUMENT BLOCK (Canadian Dollar) ═══════════
        Duplicate / loop this in Django for every instrument.
        Replace hardcoded values with {{ instrument.field }} tags.
@@ -938,6 +943,11 @@
         </tr>
       </tbody>
     </table>
+  </div>
+
+  <!-- Historical Analysis Button -->
+  <div style="text-align: center; margin-top: 2rem;">
+    <a href="{% url 'Display_Data:analysis_historical' %}" style="font-family: var(--font-mono); font-size: 0.8rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold); border: 1px solid var(--gold-light); padding: 0.6rem 1.2rem; border-radius: var(--radius); transition: all 0.15s; background: transparent; display: inline-block;" onmouseover="this.style.background='var(--gold)'; this.style.color='var(--bg)'; this.style.borderColor='var(--gold)';" onmouseout="this.style.background='transparent'; this.style.color='var(--gold)'; this.style.borderColor='var(--gold-light)';">View Historical Analysis</a>
   </div>
 
 </main><!-- /.page-body -->

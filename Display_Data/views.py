@@ -142,3 +142,57 @@ def analysis(request):
         'nav_items': nav_items,
     })
 
+def analysis_historical(request):
+    # Get all available dates with analysis summaries
+    dates_with_analysis = []
+    
+    all_dates = CotReport.objects.order_by('-as_of_date').values_list('as_of_date', flat=True).distinct()
+    
+    for date in all_dates:
+        reports = CotReport.objects.filter(as_of_date=date).order_by('name')
+        
+        # Determine signals for each report
+        buying = []
+        confused = []
+        selling = []
+        
+        for report in reports:
+            if report.asset_class == 'forex':
+                if report.nc_long > report.nc_short and report.comm_short > report.comm_long:
+                    buying.append(report.get_name_display())
+                elif report.nc_short > report.nc_long and report.comm_long > report.comm_short:
+                    selling.append(report.get_name_display())
+                else:
+                    confused.append(report.get_name_display())
+            elif report.asset_class in ['metal', 'crypto']:
+                if report.comm_long > report.comm_short and report.nc_short > report.nc_long:
+                    buying.append(report.get_name_display())
+                elif report.comm_short > report.comm_long and report.nc_long > report.nc_short:
+                    selling.append(report.get_name_display())
+                else:
+                    confused.append(report.get_name_display())
+            else:
+                confused.append(report.get_name_display())
+        
+        dates_with_analysis.append({
+            'date': date,
+            'count': reports.count(),
+            'buying': buying,
+            'confused': confused,
+            'selling': selling,
+        })
+    
+    # Navigation items
+    nav_items = [
+        {'url': '/', 'label': 'COT Data'},
+        {'url': '/dates/', 'label': 'Historical COT Reports'},
+        {'url': '/analysis/', 'label': 'Analytics'},
+        {'url': '/signals/', 'label': 'Signals'},
+        {'url': 'https://cliomaxin.github.io/maksimfelix/patreon.html', 'label': 'Donate'},
+    ]
+    
+    return render(request, 'Display/analysis_historical.html', {
+        'dates_with_analysis': dates_with_analysis,
+        'nav_items': nav_items,
+    })
+
