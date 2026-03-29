@@ -1,0 +1,15 @@
+This is a new app called Get_Data that I want its purpose is to scrap off data from cftc website historical data for individual dates. But first I need to list data (grouped as structured in historical.html). 
+Note the pattern in which the records in that html individual COT report has been been saved. Extrapolate the other data reports urls for the other other years. To be specific, as follows:
+
+Major Currencies:
+    Legacy Reports (Futures Only): Available back to January 15, 1986.
+
+Metals:
+    Legacy Reports (Futures Only): Available back to January 15, 1986.    
+
+Bitcoin (Cryptocurrency):
+    As from December 2017.    
+
+Create a new html(extrapolate_dates.html) that has buttons (three buttons for currencies, metals, Cryptocurrencies) such that when clicked will generate those extrapolations, save them in the app models.py and finally in the database. 
+The data will be used later to web scrap the actual data from cftc website (prompt will be given later)
+

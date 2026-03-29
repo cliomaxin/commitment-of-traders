@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CFTC URL Extrapolation</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 1rem; background:#f6f6f6; color:#222; }
+    .box { background:#fff; border:1px solid #ddd; border-radius:8px; padding:1rem; margin-bottom:1rem; }
+    .buttons { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1rem; }
+    button { cursor:pointer; border:1px solid #2a5dd4; background:#2f6ff6; color:#fff; padding:0.5rem 0.9rem;border-radius:4px; }
+    .notice { padding:0.8rem; background:#e8f7e5; border:1px solid #b7e2b4; margin-bottom:1rem; }
+    ul { list-style:none; padding-left:0; }
+    a { color: #1a73e8; text-decoration:none; }
+    small { color:#555; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>CFTC Historical URL Extrapolation</h1>
+    <p>Choose one of the three branches to generate weekly report URLs and persist them to the database.</p>
+    <form method="post" class="buttons">
+      {% csrf_token %}
+      {% for key, data in category_config.items %}
+        <button name="category" value="{{ key }}" type="submit">{{ data.label }}</button>
+      {% endfor %}
+    </form>
+    {% if message %}
+      <div class="notice">{{ message }}</div>
+    {% endif %}
+  </div>
+
+  <div class="box">
+    <h2>Saved Extrapolated URLs</h2>
+    {% for group in grouped_reports %}
+      <h3>{{ group.label }} ({{ group.reports|length }})</h3>
+      <ul>
+        {% for r in group.reports %}
+          <li><small>{{ r.report_date }}</small> - <a href="{{ r.url }}" target="_blank">{{ r.url }}</a></li>
+        {% empty %}
+          <li>No records yet.</li>
+        {% endfor %}
+      </ul>
+    {% endfor %}
+  </div>
+</body>
+</html>

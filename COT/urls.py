@@ -20,5 +20,6 @@ urlpatterns = [
     path('management/', admin.site.urls),
     path('Handle_Raw_COT/', include('Handle_Raw_COT.urls')),
     path('Historical_Data/', include(('Historical_Data.urls', 'Historical_Data'), namespace='Historical_Data')),
+    path('Get_Data/', include(('Get_Data.urls', 'Get_Data'), namespace='Get_Data')),
     path('', include(('Display_Data.urls', 'Display_Data'), namespace='Display_Data')),
 ]
