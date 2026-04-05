@@ -1,6 +1,49 @@
 Project Overview
 
 This Django-based web application processes, stores, and visualizes CFTC Commitment of Traders (COT) reports. These reports provide critical financial data regarding trader positioning in futures markets. The system is specifically optimized for 10 key instruments across forex, metals, and cryptocurrency markets.
+
+Core Navigation & Features
+
+Recent COT
+
+    Live Market View: Displays the most recent CFTC Commitment of Traders data for all tracked instruments.
+
+    Instrument Positioning: Shows detailed trader positioning data including Non-Commercial, Commercial, and Non-Reportable trader counts.
+
+    Market Depth: Presents open interest, percentage breakdowns, and week-over-week changes at a glance.
+
+Historical COT Tabled
+
+    Date-Based Navigation: Browse through all historical COT report dates with record counts per week.
+
+    Report Archives: Access complete historical data for any available reporting date.
+
+    Trend Analysis: Compare positioning data across different time periods.
+
+Recent COT Analysis
+
+    Sentiment Signals: Automatically generates buy, sell, and neutral signals based on trader positioning patterns.
+
+    Market Categorization: Separates analysis by asset class (Forex, Metals, Crypto).
+
+    Signal Summary: Quick overview of bullish positions, confused markets, and bearish setups.
+
+Historical COT Tree
+
+    Analytical Timeline: View historical analysis signals across all reporting dates.
+
+    Positioning Evolution: Track how market sentiment has changed over time.
+
+    Pattern Recognition: Identify recurring trading patterns and positioning trends.
+
+Import COT
+
+    Upload Interface: Drag-and-drop file upload system for importing raw CFTC data.
+
+    Format Support: Accepts HTML reports, Excel spreadsheets (.xls, .xlsx, .xlsb, .csv, .ods), and other data formats.
+
+    Real-Time Feedback: Displays import progress with detailed success or error reporting.
+
 Core Functionality
 Data Processing Pipeline
 
@@ -34,13 +77,13 @@ Data Storage & Management
 
 User Interfaces
 
-    Upload Interface: Features a drag-and-drop file upload system with real-time progress tracking.
+    Recent COT Dashboard: Clean, professional display of current trader positioning data.
 
-    Admin Dashboard: Utilizes the full Django admin interface for granular data management.
+    Historical Navigation: Browse and compare data across any reporting date.
 
-    Data Visualization: Provides a clean, professional display of trader positioning data.
+    Analysis Views: Automated market sentiment calculations with visual signal indicators.
 
-    Search & Filter: Includes live search functionality across all tracked instruments.
+    Search & Filter: Real-time search functionality across all tracked instruments.
 
 Technical Architecture
 Backend (Handle_Raw_COT App)
@@ -51,9 +94,9 @@ Backend (Handle_Raw_COT App)
 
     Django Models: Built with complex relationships, constraints, and optimized indexing.
 
-    RESTful Upload API: Supports asynchronous AJAX progress updates for a better user experience.
+    Upload API: Supports file-based data imports with comprehensive validation.
 
-    Error Handling: Implements comprehensive validation to prevent corrupted data entry.
+    Error Handling: Implements validation to prevent corrupted data entry.
 
 Frontend (Display_Data App)
 
@@ -63,10 +106,12 @@ Frontend (Display_Data App)
 
     Typography: Utilizes professional typography and custom CSS for high readability.
 
+    Signal Visualization: Color-coded market signals for quick sentiment assessment.
+
 Key Features
 Market Intelligence
 
-    Sentiment Analysis: Automatically calculates bullish and bearish positioning.
+    Sentiment Analysis: Automatically calculates bullish and bearish positioning based on trader behavior patterns.
 
     Net Positioning: Tracks the delta between long and short positions across various trader types.
 
@@ -80,7 +125,7 @@ Developer-Friendly Design
 
     Extensibility: The parser is designed to easily accommodate new instruments or alternative data sources.
 
-    API-Ready: Structured for seamless integration with external trading systems or proprietary models.
+    Multi-View System: Supports multiple visualization formats for different analysis workflows.
 
 Production Standards
 
@@ -97,6 +142,7 @@ Use Cases
     Risk Management: Monitor the activity of large traders to identify potential market reversals.
 
     Market Research: Conduct historical analysis of trader behavior during specific economic cycles.
+
 
     Algorithmic Trading: Use structured positioning data as an input for quantitative trading models.
 
