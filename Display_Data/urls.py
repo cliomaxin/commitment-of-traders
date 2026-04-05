@@ -10,4 +10,6 @@ urlpatterns = [
     path('date/<str:date_str>/', views.date_detail, name='date_detail'),
     path('analysis/', views.analysis, name='analysis'),
     path('analysis/historical/', views.analysis_historical, name='analysis_historical'),
+    path('signals/', views.signals_redirect, name='signals_redirect'),
+    path('donate/', views.donate_redirect, name='donate_redirect'),
 ]

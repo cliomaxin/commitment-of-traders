@@ -366,10 +366,11 @@
     </a>
     <nav>
       <a href="{% url 'Handle_Raw_COT:upload' %}" class="active">Import</a>
-      <a href="{% url 'Display_Data:dashboard' %}">COT Data</a>
-      <a href="/analytics/">Analytics</a>
-      <a href="/signals/">Signals</a>
-      <a href="https://cliomaxin.github.io/maksimfelix/patreon.html">Donate</a>
+      <a href="{% url 'Display_Data:dashboard' %}">Recent COT</a>
+      <a href="/dates/">Historical COT Tabled</a>
+      <a href="/analysis/">Recent COT Analysis</a>
+      <a href="/signals/">Historical COT Tree</a>
+      <a href="/donate/">Import COT</a>
     </nav>
     <div class="header-right">
       <a href="https://cliomaxin.github.io/maksimfelix/patreon.html" class="btn-sm">Donate</a>
@@ -520,8 +521,8 @@
     <span style="font-family:var(--serif);font-size:0.95rem;color:var(--text-2);">Maksim Felix</span>
     <nav style="display:flex;gap:1.5rem;">
       <a href="{% url 'Handle_Raw_COT:upload' %}" style="font-family:var(--mono);font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-3);">Import</a>
-      <a href="{% url 'Display_Data:dashboard' %}" style="font-family:var(--mono);font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-3);">COT Data</a>
-      <a href="https://cliomaxin.github.io/maksimfelix/patreon.html" style="font-family:var(--mono);font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-3);">Donate</a>
+      <a href="{% url 'Display_Data:dashboard' %}" style="font-family:var(--mono);font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-3);">Recent COT</a>
+      <a href="/donate/" style="font-family:var(--mono);font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-3);">Donate</a>
     </nav>
     <span style="font-family:var(--mono);font-size:0.6rem;color:var(--text-3);">Data: CFTC.gov &nbsp;·&nbsp; © {% now "Y" %} Maksim Felix</span>
   </div>

@@ -1,8 +1,18 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.db import models
 from Handle_Raw_COT.models import CotReport
 
 # Create your views here.
+
+def get_nav_items():
+    return [
+        {'url': '/', 'label': 'Recent COT'},
+        {'url': '/dates/', 'label': 'Historical COT Tabled'},
+        {'url': '/analysis/', 'label': 'Recent COT Analysis'},
+        {'url': '/signals/', 'label': 'Historical COT Tree'},
+        {'url': '/donate/', 'label': 'Import COT'},
+    ]
+
 def index(request):
     # Get the latest date
     latest_date = CotReport.objects.order_by('-as_of_date').values_list('as_of_date', flat=True).first()
@@ -15,13 +25,7 @@ def index(request):
     all_dates = CotReport.objects.order_by('-as_of_date').values_list('as_of_date', flat=True).distinct()
     
     # Navigation items
-    nav_items = [
-        {'url': '/', 'label': 'COT Data'},
-        {'url': '/dates/', 'label': 'Historical COT Reports'},
-        {'url': '/analysis/', 'label': 'Analytics'},
-        {'url': '/signals/', 'label': 'Signals'},
-        {'url': 'https://cliomaxin.github.io/maksimfelix/patreon.html', 'label': 'Donate'},
-    ]
+    nav_items = get_nav_items()
     
     return render(request, 'Display/index.html', {
         'reports': reports,
@@ -38,13 +42,7 @@ def date_list(request):
     ).order_by('-as_of_date')
     
     # Navigation items
-    nav_items = [
-        {'url': '/', 'label': 'COT Data'},
-        {'url': '/dates/', 'label': 'Historical COT Reports'},
-        {'url': '/analysis/', 'label': 'Analytics'},
-        {'url': '/signals/', 'label': 'Signals'},
-        {'url': 'https://cliomaxin.github.io/maksimfelix/patreon.html', 'label': 'Donate'},
-    ]
+    nav_items = get_nav_items()
     
     return render(request, 'Display/date_list.html', {
         'dates_with_counts': dates_with_counts,
@@ -58,13 +56,7 @@ def date_detail(request, date_str):
         reports = CotReport.objects.filter(as_of_date=date_obj).order_by('name')
         
         # Navigation items
-        nav_items = [
-            {'url': '/', 'label': 'COT Data'},
-            {'url': '/dates/', 'label': 'Historical COT Reports'},
-            {'url': '/analysis/', 'label': 'Analytics'},
-            {'url': '/signals/', 'label': 'Signals'},
-            {'url': 'https://cliomaxin.github.io/maksimfelix/patreon.html', 'label': 'Donate'},
-        ]
+        nav_items = get_nav_items()
         
         return render(request, 'Display/index.html', {
             'reports': reports,
@@ -123,13 +115,7 @@ def analysis(request):
     all_dates = CotReport.objects.order_by('-as_of_date').values_list('as_of_date', flat=True).distinct()
     
     # Navigation items
-    nav_items = [
-        {'url': '/', 'label': 'COT Data'},
-        {'url': '/dates/', 'label': 'Historical COT Reports'},
-        {'url': '/analysis/', 'label': 'Analytics'},
-        {'url': '/signals/', 'label': 'Signals'},
-        {'url': 'https://cliomaxin.github.io/maksimfelix/patreon.html', 'label': 'Donate'},
-    ]
+    nav_items = get_nav_items()
     
     return render(request, 'Display/analysis.html', {
         'reports': reports,
@@ -183,16 +169,18 @@ def analysis_historical(request):
         })
     
     # Navigation items
-    nav_items = [
-        {'url': '/', 'label': 'COT Data'},
-        {'url': '/dates/', 'label': 'Historical COT Reports'},
-        {'url': '/analysis/', 'label': 'Analytics'},
-        {'url': '/signals/', 'label': 'Signals'},
-        {'url': 'https://cliomaxin.github.io/maksimfelix/patreon.html', 'label': 'Donate'},
-    ]
+    nav_items = get_nav_items()
     
     return render(request, 'Display/analysis_historical.html', {
         'dates_with_analysis': dates_with_analysis,
         'nav_items': nav_items,
     })
+
+
+def signals_redirect(request):
+    return redirect('Historical_Data:historical')
+
+
+def donate_redirect(request):
+    return redirect('Handle_Raw_COT:upload')
 
