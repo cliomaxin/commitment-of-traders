@@ -153,3 +153,23 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # EMAIL_PORT = 587
 # EMAIL_HOST_USER = "maxipytech@gmail.com"
 # EMAIL_HOST_PASSWORD = "mako cirr jblx miyt"
+
+
+
+
+
+# deleting tables with more than 1000 fields causes an error, so we set this to a higher value to allow for our large COT reports which can have many fields due to the various categories and sub
+
+# Source - https://stackoverflow.com/a/47585694
+# Posted by Yun Luo, modified by community. See post 'Timeline' for change history
+# Retrieved 2026-04-05, License - CC BY-SA 4.0
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 10240000 # higher than the count of fields
+
+# Source - https://stackoverflow.com/q/47585583
+# Posted by user8817477, modified by community. See post 'Timeline' for change history
+# Retrieved 2026-04-05, License - CC BY-SA 4.0
+
+DATA_UPLOAD_MAX_MEMORY_SIZE = 1000000000000
+
+
+

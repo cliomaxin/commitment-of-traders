@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+from collections import defaultdict
 
 from django.shortcuts import render
 
@@ -7,13 +8,13 @@ from .models import ExtrapolatedReport
 CATEGORY_CONFIG = {
     'currencies': {
         'label': 'Major Currencies',
-        'start_date': date(1986, 1, 15),
+        'start_date': date(2010, 1, 1),
         'prefix': 'deacmesf',
         'subdir': 'futures',
     },
     'metals': {
         'label': 'Metals',
-        'start_date': date(1986, 1, 15),
+        'start_date': date(2010, 1, 1),
         'prefix': 'deacmetf',
         'subdir': 'futures',
     },
@@ -26,13 +27,13 @@ CATEGORY_CONFIG = {
 }
 
 
-def _get_latest_wednesday(from_date: date) -> date:
-    diff = (from_date.weekday() - 2) % 7
+def _get_latest_tuesday(from_date: date) -> date:
+    diff = (from_date.weekday() - 1) % 7
     return from_date - timedelta(days=diff)
 
 
-def _normalize_wednesday(d: date) -> date:
-    while d.weekday() != 2:
+def _normalize_tuesday(d: date) -> date:
+    while d.weekday() != 1:
         d += timedelta(days=1)
     return d
 
@@ -46,8 +47,8 @@ def extrapolate_dates(request):
         config = CATEGORY_CONFIG.get(category)
 
         if config:
-            start = _normalize_wednesday(config['start_date'])
-            end = _get_latest_wednesday(date.today())
+            start = _normalize_tuesday(config['start_date'])
+            end = _get_latest_tuesday(date.today())
             current = start
             while current <= end:
                 code_suffix = current.strftime('%m%d%y')
@@ -70,22 +71,42 @@ def extrapolate_dates(request):
         else:
             message = 'Unknown category selected.'
 
-    # Keep unsliced base queryset so we can apply per-category filtering safely.
-    grouped = [
-        {
+    # Build grouped and year-organized data for each category
+    grouped_reports = []
+    for key, config in CATEGORY_CONFIG.items():
+        reports = ExtrapolatedReport.objects.filter(category=key).order_by('-report_date')
+        
+        # Group reports by year
+        years_dict = defaultdict(list)
+        for report in reports:
+            year = report.report_date.year
+            years_dict[year].append(report)
+        
+        # Sort years in descending order
+        sorted_years = sorted(years_dict.keys(), reverse=True)
+        
+        year_groups = []
+        for year in sorted_years:
+            year_reports = sorted(years_dict[year], key=lambda r: r.report_date, reverse=True)
+            year_groups.append({
+                'year': year,
+                'count': len(year_reports),
+                'reports': year_reports,
+            })
+        
+        grouped_reports.append({
             'key': key,
             'label': config['label'],
-            'reports': ExtrapolatedReport.objects.filter(category=key).order_by('-report_date')[:200],
-        }
-        for key, config in CATEGORY_CONFIG.items()
-    ]
+            'year_groups': year_groups,
+            'total_count': len(reports),
+        })
 
     return render(
         request,
         'Get_Data/extrapolate_dates.html',
         {
             'category_config': CATEGORY_CONFIG,
-            'grouped_reports': grouped,
+            'grouped_reports': grouped_reports,
             'message': message,
             'generated': generated,
         },
