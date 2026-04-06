@@ -13,3 +13,11 @@ Bitcoin (Cryptocurrency):
 Create a new html(extrapolate_dates.html) that has buttons (three buttons for currencies, metals, Cryptocurrencies) such that when clicked will generate those extrapolations, save them in the app models.py and finally in the database. 
 The data will be used later to web scrap the actual data from cftc website (prompt will be given later)
 
+
+
+Create 2 buttons that will take the user directly to:
+1. Currencies - https://www.cftc.gov/dea/futures/deacmesf.htm
+2. Metals and Bitcoin - https://www.cftc.gov/dea/futures/deacmxsf.htm
+
+This is to avoid manual input browsing and looking for the cftc website reports but instead someone can click the button that will take them to the website directly.
+The buttons should be placed before the first title of the html page 
