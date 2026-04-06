@@ -577,6 +577,34 @@ class ScrapedCotReport(models.Model):
             self.asset_class = ASSET_CLASS_MAP.get(self.name, "")
         super().save(*args, **kwargs)
 
+    # ── Computed properties ───────────────────────────────────────────────────
+    @property
+    def net_nc_position(self) -> int:
+        """Non-commercial net (longs − shorts). Positive = net long = bullish bias."""
+        return self.nc_long - self.nc_short
+
+    @property
+    def net_comm_position(self) -> int:
+        """Commercial net (longs − shorts). Commercials are often contrarian hedgers."""
+        return self.comm_long - self.comm_short
+
+    @property
+    def nc_sentiment(self) -> str:
+        """Simple directional label based on non-commercial net position."""
+        net = self.net_nc_position
+        if net > 0:
+            return "bullish"
+        elif net < 0:
+            return "bearish"
+        return "neutral"
+
+    @property
+    def nc_long_pct_of_oi(self) -> float:
+        """Non-commercial longs as % of open interest (float, not stored)."""
+        if not self.open_interest:
+            return 0.0
+        return round(self.nc_long / self.open_interest * 100, 2)
+
     @classmethod
     def from_parser_dict(cls, data: dict, import_log=None) -> "ScrapedCotReport":
         instance = cls(import_log=import_log)
