@@ -20,7 +20,7 @@ CATEGORY_CONFIG = {
     },
     'crypto': {
         'label': 'Bitcoin (Cryptocurrency)',
-        'start_date': date(2017, 12, 26),
+        'start_date': date(2018, 4, 10),
         'prefix': 'deacmesf',
         'subdir': 'futures',
     },
