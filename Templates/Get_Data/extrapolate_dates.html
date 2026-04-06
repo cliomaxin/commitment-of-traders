@@ -97,6 +97,11 @@
       border-color: var(--gold-light);
     }
 
+    button.updateBtn:hover {
+      background: #ff1493;
+      border-color: #ff1493;
+    }
+
     .tree-container {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -333,6 +338,14 @@
   {% endif %}
 
   <div style="margin-bottom: 2rem;">
+    <h2 style="margin-top: 0; font-size: 1rem;">Update to Latest Reports</h2>
+    <form method="post" action="{% url 'Get_Data:update_to_latest' %}" class="buttons" id="updateForm">
+      {% csrf_token %}
+      <button type="submit" style="background: #ff69b4; border-color: #ff69b4;" class="updateBtn">Fill Gaps to Latest</button>
+    </form>
+  </div>
+
+  <div style="margin-bottom: 2rem;">
     <h2 style="margin-top: 0; font-size: 1rem;">Generate New URLs</h2>
     <form method="post" class="buttons" id="generateForm">
       {% csrf_token %}
@@ -392,7 +405,7 @@
 
   let isGenerating = false;
 
-  document.getElementById('generateForm').addEventListener('submit', function(e) {
+  function handleFormSubmit(e) {
     // Prevent multiple submissions
     if (isGenerating) {
       e.preventDefault();
@@ -407,12 +420,15 @@
 
     // Disable buttons after a brief delay to ensure form submission completes
     setTimeout(() => {
-      const buttons = document.querySelectorAll('.generateBtn');
+      const buttons = document.querySelectorAll('.generateBtn, .updateBtn');
       buttons.forEach(btn => {
         btn.disabled = true;
       });
     }, 10);
-  });
+  }
+
+  document.getElementById('generateForm').addEventListener('submit', handleFormSubmit);
+  document.getElementById('updateForm').addEventListener('submit', handleFormSubmit);
 </script>
 
 </body>
