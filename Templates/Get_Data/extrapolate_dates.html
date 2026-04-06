@@ -236,6 +236,62 @@
       color: var(--ink);
       margin: 0;
     }
+
+    .loading-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 9999;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .loading-overlay.active {
+      display: flex;
+    }
+
+    .loading-spinner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      color: white;
+      font-family: var(--font-sans);
+      font-size: 1rem;
+      text-align: center;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+      background: var(--gold);
+      border-color: var(--gold);
+    }
+
+    button:disabled:hover {
+      background: var(--gold);
+      border-color: var(--gold);
+    }
   </style>
 </head>
 <body>
@@ -249,7 +305,7 @@
 
 <div class="page-body">
   <h1>CFTC Historical URL Extrapolation</h1>
-  <p style="margin-bottom: 1.5rem; color: var(--ink-muted);">Generate and manage historical CFTC COT report URLs from 2010 onwards.</p>
+  <p style="margin-bottom: 1.5rem; color: var(--ink-muted);">Generate and manage historical CFTC COT report URLs from 2005 (January 4, 2005) onwards.</p>
 
   {% if message %}
     <div class="notice">{{ message }}</div>
@@ -257,12 +313,19 @@
 
   <div style="margin-bottom: 2rem;">
     <h2 style="margin-top: 0; font-size: 1rem;">Generate New URLs</h2>
-    <form method="post" class="buttons">
+    <form method="post" class="buttons" id="generateForm">
       {% csrf_token %}
       {% for key, data in category_config.items %}
-        <button name="category" value="{{ key }}" type="submit">{{ data.label }}</button>
+        <button name="category" value="{{ key }}" type="submit" class="generateBtn">{{ data.label }}</button>
       {% endfor %}
     </form>
+  </div>
+
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner">
+      <div class="spinner"></div>
+      <div class="loading-text">Generating URLs...</div>
+    </div>
   </div>
 
   {% for group in grouped_reports %}
@@ -305,6 +368,30 @@
     const dateList = element.nextElementSibling;
     dateList.classList.toggle('show');
   }
+
+  let isGenerating = false;
+
+  document.getElementById('generateForm').addEventListener('submit', function(e) {
+    // Prevent multiple submissions
+    if (isGenerating) {
+      e.preventDefault();
+      return;
+    }
+
+    isGenerating = true;
+
+    // Show loading overlay
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    loadingOverlay.classList.add('active');
+
+    // Disable buttons after a brief delay to ensure form submission completes
+    setTimeout(() => {
+      const buttons = document.querySelectorAll('.generateBtn');
+      buttons.forEach(btn => {
+        btn.disabled = true;
+      });
+    }, 10);
+  });
 </script>
 
 </body>

@@ -8,13 +8,13 @@ from .models import ExtrapolatedReport
 CATEGORY_CONFIG = {
     'currencies': {
         'label': 'Major Currencies',
-        'start_date': date(2010, 1, 1),
+        'start_date': date(2005, 1, 4),
         'prefix': 'deacmesf',
         'subdir': 'futures',
     },
     'metals': {
         'label': 'Metals',
-        'start_date': date(2010, 1, 1),
+        'start_date': date(2005, 1, 4),
         'prefix': 'deacmetf',
         'subdir': 'futures',
     },
