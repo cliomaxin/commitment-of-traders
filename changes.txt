@@ -7,4 +7,3 @@ I need to make some changes on the urls on all the navbars of every html. The ch
 5. Donate - Change everything (urls and views py files) to a new URL that redirects to the "Upload COT" that takes the user to http://127.0.0.1:8000/Handle_Raw_COT/upload/. As for the far end of the button "Donate" on the navbar, dont change anything. Leave it as it is. Just change the first Donate navbar navlink 
 
 
-Now add a loading icon fuctionality on the extrapolate_dates.html when all or any of the 3 options is being generated, You cannot click 
