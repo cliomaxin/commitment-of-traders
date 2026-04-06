@@ -15,13 +15,13 @@ CATEGORY_CONFIG = {
     'metals': {
         'label': 'Metals',
         'start_date': date(2005, 1, 4),
-        'prefix': 'deacmetf',
+        'prefix': 'deacmxsf',
         'subdir': 'futures',
     },
     'crypto': {
         'label': 'Bitcoin (Cryptocurrency)',
         'start_date': date(2017, 12, 26),
-        'prefix': 'deacbtc',
+        'prefix': 'deacmesf',
         'subdir': 'futures',
     },
 }
