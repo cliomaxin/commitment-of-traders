@@ -11,3 +11,4 @@ six==1.17.0
 sqlparse==0.5.5
 tzdata==2025.3
 xlrd==2.0.2
+requests==2.31.0

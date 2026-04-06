@@ -1,12 +1,9 @@
-Everything is ok now. 
-I need to now add a new feature(through a new view) that adds the latest cot report link url to the list of url links in the database. 
-It needs to work this way: 
-1.it should check the last date of the generated url(for currencies, bitcoin and metals)
-2. Afterwards, it should check the current date to figure whether the release date has been achieved (the COT release dates interval as you have noted is usually after 7 days):
-   - if the 7 days have elapsed, it should generate a new link for currencies, bitcoin and metals.
-   - if for example a month has elapsed and the links on the database have not been updated, it should generate the links missing to the current date (each for the 3 categories - for currencies, bitcoin and metals) all at once but in an order starting from currencies to bitcoin to metals.
-   - same case for maybe the list has not been updated for 6 months or even years.
+introducing a new feature on the app - Handle_Raw_COT
+The app will be working hand in hand with the app - Get_Data
 
-The user should be able to fill in the gaps to the recent COT release date at a click of a button(Which should be on top of extrapolate_dates.html). Make the color distinct (pink in color - background)
+So here is the idea - the models on the Get_Data app have stored urls of all historical cot reports that I need for Currencies, bitcoin and metals.
+I need a functionality that parses through the links one by one, takes note of that url, opens it and scraps the data necessary(just as when importing the html files of the existing code and functionalities) and then saves the data on the database through a new model class (the only difference is just the naming of the class), but in every other form, it saves the data as the current models.
 
-I hope you get the context of what the idea is all about
+Basically the idea is that I want to scrap data off of the cftc website with the reference of the stored report urls. It should be done at a click of a button. The button should be located on scraping_data.html.
+
+Tell me which scrapping libraries I need to install to make it easier for you to scrap the data

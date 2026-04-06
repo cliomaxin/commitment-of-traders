@@ -5,4 +5,5 @@ app_name = "Handle_Raw_COT"
 
 urlpatterns = [
     path("upload/", CotUploadView.as_view(), name="upload"),
+    path("scraping/", ScrapeCotLinksView.as_view(), name="scraping"),
 ]

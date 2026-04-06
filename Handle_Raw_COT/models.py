@@ -424,6 +424,176 @@ class CotReport(models.Model):
         return defaults
 
 
+class ScrapedCotReport(models.Model):
+    """
+    One row = one instrument + one reporting week.
+    Same schema as CotReport, but stored in a separate model/table for web-scraped URL imports.
+    """
+
+    # ── Identity ─────────────────────────────────────────────────────────────
+    name         = models.CharField(
+        max_length=64,
+        choices=INSTRUMENT_CHOICES,
+        db_index=True,
+    )
+    code         = models.CharField(
+        max_length=20,
+        blank=True,
+        help_text="CFTC instrument code, e.g. 099741",
+    )
+    asset_class  = models.CharField(
+        max_length=10,
+        choices=ASSET_CLASS_CHOICES,
+        blank=True,
+        db_index=True,
+    )
+    contract_spec = models.CharField(
+        max_length=128,
+        blank=True,
+        help_text="e.g. CONTRACTS OF EUR 125,000",
+    )
+
+    # ── Dates ────────────────────────────────────────────────────────────
+    as_of_date   = models.DateField(
+        db_index=True,
+        help_text="CFTC report date (Tuesday of the reporting week)",
+    )
+    prev_date    = models.DateField(
+        null=True, blank=True,
+        help_text="Prior week date used for change calculations",
+    )
+
+    # ── Source tracing ──────────────────────────────────────────────────────
+    source_file  = models.CharField(
+        max_length=128,
+        blank=True,
+        help_text="Original filename, e.g. deacmesf.htm",
+    )
+    import_log   = models.ForeignKey(
+        ImportLog,
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name="scraped_reports",
+        help_text="The scraping session that created/updated this row",
+    )
+
+    # ── Open Interest ──────────────────────────────────────────────────────
+    open_interest = models.BigIntegerField(default=0)
+    oi_change     = models.BigIntegerField(
+        default=0,
+        help_text="Change in open interest from prior week (signed)",
+    )
+
+    # ── Commitments ──────────────────────────────────────────────────────────
+    # Non-Commercial
+    nc_long    = models.BigIntegerField(default=0)
+    nc_short   = models.BigIntegerField(default=0)
+    nc_spreads = models.BigIntegerField(default=0)
+
+    # Commercial
+    comm_long  = models.BigIntegerField(default=0)
+    comm_short = models.BigIntegerField(default=0)
+
+    # Total
+    total_long  = models.BigIntegerField(default=0)
+    total_short = models.BigIntegerField(default=0)
+
+    # Nonreportable
+    nr_long  = models.BigIntegerField(default=0)
+    nr_short = models.BigIntegerField(default=0)
+
+    # ── Changes from prior week ──────────────────────────────────────────────
+    # Non-Commercial changes
+    chg_nc_long    = models.BigIntegerField(default=0)
+    chg_nc_short   = models.BigIntegerField(default=0)
+    chg_nc_spreads = models.BigIntegerField(default=0)
+
+    # Commercial changes
+    chg_comm_long  = models.BigIntegerField(default=0)
+    chg_comm_short = models.BigIntegerField(default=0)
+
+    # Total changes
+    chg_total_long  = models.BigIntegerField(default=0)
+    chg_total_short = models.BigIntegerField(default=0)
+
+    # Nonreportable changes
+    chg_nr_long  = models.BigIntegerField(default=0)
+    chg_nr_short = models.BigIntegerField(default=0)
+
+    # ── Percent of Open Interest ─────────────────────────────────────────────
+    pct_nc_long    = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+    pct_nc_short   = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+    pct_nc_spreads = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+
+    pct_comm_long  = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+    pct_comm_short = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+
+    pct_total_long  = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+    pct_total_short = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+
+    pct_nr_long  = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+    pct_nr_short = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+
+    # ── Number of Traders ────────────────────────────────────────────────────
+    traders_total = models.PositiveIntegerField(default=0)
+
+    trd_nc_long    = models.PositiveIntegerField(default=0)
+    trd_nc_short   = models.PositiveIntegerField(default=0)
+    trd_nc_spreads = models.PositiveIntegerField(default=0)
+
+    trd_comm_long  = models.PositiveIntegerField(default=0)
+    trd_comm_short = models.PositiveIntegerField(default=0)
+
+    trd_total_long  = models.PositiveIntegerField(default=0)
+    trd_total_short = models.PositiveIntegerField(default=0)
+
+    # ── Timestamps ───────────────────────────────────────────────────────────
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    # ── Meta ─────────────────────────────────────────────────────────────────
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["name", "as_of_date"],
+                name="unique_scraped_instrument_per_week",
+            )
+        ]
+        ordering = ["-as_of_date", "name"]
+        indexes = [
+            models.Index(fields=["name", "as_of_date"]),
+            models.Index(fields=["as_of_date"]),
+            models.Index(fields=["asset_class", "as_of_date"]),
+            models.Index(fields=["name", "-as_of_date"]),
+        ]
+        verbose_name = "Scraped COT Report"
+        verbose_name_plural = "Scraped COT Reports"
+
+    def __str__(self):
+        return f"{self.get_name_display()}  —  {self.as_of_date}"
+
+    def save(self, *args, **kwargs):
+        if not self.asset_class and self.name:
+            self.asset_class = ASSET_CLASS_MAP.get(self.name, "")
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def from_parser_dict(cls, data: dict, import_log=None) -> "ScrapedCotReport":
+        instance = cls(import_log=import_log)
+        for field, value in data.items():
+            if hasattr(instance, field):
+                setattr(instance, field, value)
+        return instance
+
+    @staticmethod
+    def defaults_from_dict(data: dict, import_log=None) -> dict:
+        exclude = {"name", "as_of_date"}
+        defaults = {k: v for k, v in data.items() if k not in exclude}
+        if import_log is not None:
+            defaults["import_log"] = import_log
+        return defaults
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # 3.  CotReportHistory  —  audit trail (optional)
 # ─────────────────────────────────────────────────────────────────────────────

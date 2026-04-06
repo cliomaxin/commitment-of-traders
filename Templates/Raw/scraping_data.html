@@ -1,0 +1,267 @@
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Maksim Felix — Scrape Stored COT URLs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:          #0d0f12;
+      --bg2:         #13161b8f;
+      --bg3:         #191d24;
+      --border:      #21262f;
+      --border2:     #2c3340;
+      --gold:        #c9a84b;
+      --gold-dim:    #6b5520;
+      --cyan:        #38b2b2;
+      --green:       #3a9e6e;
+      --green-bg:    rgba(58,158,110,0.08);
+      --red:         #c0443f;
+      --red-bg:      rgba(192,68,63,0.08);
+      --text:        #dde3ec;
+      --text-2:      #7a8899;
+      --text-3:      #3d4a58;
+      --mono:        'DM Mono', monospace;
+      --serif:       'DM Serif Display', serif;
+      --sans:        'DM Sans', sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 14px;
+      min-height: 100vh;
+    }
+    a { color: inherit; text-decoration: none; }
+    .site-header {
+      position: sticky; top: 0; z-index: 200;
+      background: rgba(13,15,18,0.96);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(10px);
+    }
+    .header-inner {
+      max-width: 1200px; margin: 0 auto;
+      padding: 0 2rem; height: 58px;
+      display: flex; align-items: center; gap: 2rem;
+    }
+    .logo { display: flex; flex-direction: column; line-height: 1; flex-shrink: 0; }
+    .logo-name { font-family: var(--serif); font-size: 1.2rem; color: var(--text); }
+    .logo-tag  { font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.2em;
+                 text-transform: uppercase; color: var(--gold); margin-top: 2px; }
+    nav { display: flex; gap: 0.2rem; }
+    nav a {
+      font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text-2);
+      padding: 0.38rem 0.85rem; border-radius: 3px; transition: all 0.15s;
+    }
+    nav a:hover { color: var(--text); background: var(--bg3); }
+    nav a.active { color: var(--gold); }
+    .page-wrap { max-width: 1200px; margin: 0 auto; padding: 3rem 2rem 5rem; }
+    .page-title {
+      margin-bottom: 2rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1rem;
+    }
+    .page-title h1 {
+      font-family: var(--serif); font-size: 2rem; font-weight: 400;
+      color: var(--text); margin-bottom: 0.4rem;
+    }
+    .page-title p {
+      font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.1em;
+      color: var(--text-2);
+    }
+    .card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+    }
+    .card-head {
+      background: var(--bg3);
+      border-bottom: 1px solid var(--border);
+      padding: 0.85rem 1.25rem;
+    }
+    .card-head-title {
+      font-family: var(--mono); font-size: 0.65rem;
+      letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold);
+    }
+    .card-body { padding: 1.5rem 1.25rem; }
+    .btn-primary {
+      font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.1em;
+      text-transform: uppercase;
+      background: var(--gold); color: var(--bg);
+      border: none; padding: 0.75rem 1.75rem;
+      border-radius: 3px; cursor: pointer;
+      transition: opacity 0.15s;
+      display: inline-flex; align-items: center; gap: 0.5rem;
+    }
+    .btn-primary:hover { opacity: 0.88; }
+    .btn-secondary {
+      font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.1em;
+      text-transform: uppercase;
+      background: transparent; color: var(--text-2);
+      border: 1px solid var(--border); padding: 0.65rem 1.2rem;
+      border-radius: 3px; cursor: pointer;
+    }
+    .btn-secondary:hover { color: var(--text); border-color: var(--gold); }
+    .result-card {
+      display: grid; gap: 1rem;
+    }
+    .result-item {
+      background: var(--bg3); border: 1px solid var(--border); border-radius: 5px;
+      padding: 1rem;
+    }
+    .result-item h3 {
+      font-family: var(--mono); margin-bottom: 0.65rem; color: var(--gold);
+      font-size: 0.85rem; letter-spacing: 0.12em; text-transform: uppercase;
+    }
+    .result-item p {
+      font-family: var(--mono); font-size: 0.78rem; line-height: 1.6;
+      color: var(--text-2);
+    }
+    .error-list {
+      background: rgba(192,68,63,0.08); border: 1px solid rgba(192,68,63,0.25);
+      border-radius: 5px; padding: 1rem;
+    }
+    .error-list p {
+      font-family: var(--mono); font-size: 0.75rem; color: var(--red);
+      margin-bottom: 0.65rem;
+    }
+    .error-list p:last-child { margin-bottom: 0; }
+    .url-table { width: 100%; border-collapse: collapse; }
+    .url-table th,
+    .url-table td { padding: 0.75rem 0.85rem; text-align: left; font-family: var(--mono); font-size: 0.75rem; }
+    .url-table th { color: var(--text-2); border-bottom: 1px solid var(--border); text-transform: uppercase; letter-spacing: 0.08em; }
+    .url-table td { color: var(--text); border-bottom: 1px solid rgba(33,38,47,0.6); }
+    .footer-nav { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 3rem; }
+  </style>
+</head>
+<body>
+<header class="site-header">
+  <div class="header-inner">
+    <a href="/" class="logo">
+      <span class="logo-name">Maksim Felix</span>
+      <span class="logo-tag">Markets Intelligence</span>
+    </a>
+    <nav>
+      <a href="{% url 'Handle_Raw_COT:upload' %}">Import COT</a>
+      <a href="{% url 'Handle_Raw_COT:scraping' %}" class="active">Scrape URLs</a>
+      <a href="{% url 'Display_Data:dashboard' %}">Recent COT</a>
+    </nav>
+  </div>
+</header>
+<div class="page-wrap">
+  <div class="page-title">
+    <h1>Scrape Stored COT URLs</h1>
+    <p>Fetch each stored CFTC report URL, parse its HTML, and save the extracted COT data using a separate scraped report model.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <span class="card-head-title">Stored report links</span>
+    </div>
+    <div class="card-body">
+      <p>Total stored report URLs available for scraping: <strong>{{ total_urls }}</strong></p>
+      {% if last_log %}
+      <p>Last scrape session: <strong>{{ last_log.uploaded_at|date:"d M Y H:i" }}</strong> — status <strong>{{ last_log.get_status_display }}</strong></p>
+      {% endif %}
+      <form method="post" action="{% url 'Handle_Raw_COT:scraping' %}">
+        {% csrf_token %}
+        <button type="submit" class="btn-primary">Scrape stored report URLs</button>
+      </form>
+    </div>
+  </div>
+
+  {% if scrape_results %}
+  <div class="card">
+    <div class="card-head">
+      <span class="card-head-title">Scrape summary</span>
+    </div>
+    <div class="card-body result-card">
+      <div class="result-item">
+        <h3>Created</h3>
+        <p>{{ scrape_results.created }} new rows saved.</p>
+      </div>
+      <div class="result-item">
+        <h3>Updated</h3>
+        <p>{{ scrape_results.updated }} existing rows updated.</p>
+      </div>
+      {% if scrape_results.errors %}
+      <div class="result-item error-list">
+        <h3>Errors</h3>
+        {% for err in scrape_results.errors %}
+          <p>{{ err }}</p>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <span class="card-head-title">Per-URL result</span>
+    </div>
+    <div class="card-body">
+      <table class="url-table">
+        <thead>
+          <tr>
+            <th>URL</th>
+            <th>Records</th>
+            <th>Created</th>
+            <th>Updated</th>
+            <th>Error</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in scrape_results.url_results %}
+          <tr>
+            <td style="max-width:320px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ item.url }}</td>
+            <td>{{ item.records|default:'-' }}</td>
+            <td>{{ item.created|default:'-' }}</td>
+            <td>{{ item.updated|default:'-' }}</td>
+            <td style="color: var(--red);">{{ item.error|default:'-' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="card">
+    <div class="card-head">
+      <span class="card-head-title">Recent scraped rows</span>
+    </div>
+    <div class="card-body">
+      {% if recent %}
+      <table class="url-table">
+        <thead>
+          <tr>
+            <th>Instrument</th>
+            <th>As Of</th>
+            <th>Source File</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in recent %}
+          <tr>
+            <td>{{ row.name }}</td>
+            <td>{{ row.as_of_date|date:"d M Y" }}</td>
+            <td>{{ row.source_file }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p>No scraped records yet.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+</body>
+</html>

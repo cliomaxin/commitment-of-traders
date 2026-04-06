@@ -7,14 +7,20 @@
 #   - All type hints use typing module style (no built-in generics like list[x])
 # ─────────────────────────────────────────────────────────────────────────────
 
+import requests
+from pathlib import Path
+from urllib.parse import urlparse
+
 from django.shortcuts import render
 from django.views import View
 from django.http import JsonResponse
+from django.utils import timezone
 
-from .models import CotReport, ImportLog
+from .models import CotReport, ImportLog, ScrapedCotReport
 from .cot_parser import parse_cot_file_from_text
 from .excel_parser import parse_excel_file_from_bytes
 from .forms import CotUploadForm
+from Get_Data.models import ExtrapolatedReport
 
 
 def _is_ajax(request):
@@ -192,4 +198,102 @@ class CotUploadView(View):
             "form":    CotUploadForm(),
             "payload": payload,
             "recent":  CotReport.objects.order_by("-as_of_date", "name")[:30],
+        })
+
+
+class ScrapeCotLinksView(View):
+    template_name = "Raw/scraping_data.html"
+
+    def get(self, request):
+        total_urls = ExtrapolatedReport.objects.count()
+        last_log = ImportLog.objects.filter(filename__startswith="remote-urls-scrape").order_by("-uploaded_at").first()
+        recent = ScrapedCotReport.objects.order_by("-as_of_date", "name")[:20]
+        return render(request, self.template_name, {
+            "total_urls": total_urls,
+            "last_log": last_log,
+            "recent": recent,
+        })
+
+    def post(self, request):
+        urls = list(ExtrapolatedReport.objects.order_by("category", "report_date").values_list("url", flat=True))
+        total_urls = len(urls)
+
+        log = ImportLog.objects.create(
+            uploaded_by  = request.user if request.user.is_authenticated else None,
+            filename     = f"remote-urls-scrape-{timezone.now():%Y%m%d%H%M%S}.txt",
+            file_size_kb = 0,
+            status       = "pending",
+        )
+
+        session = requests.Session()
+        session.headers.update({
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+        })
+
+        created = 0
+        updated = 0
+        url_results = []
+        errors = []
+
+        for url in urls:
+            try:
+                response = session.get(url, timeout=20)
+                response.raise_for_status()
+                html_text = response.text
+            except Exception as exc:
+                error_text = f"{url}: fetch failed — {exc}"
+                errors.append(error_text)
+                url_results.append({"url": url, "error": error_text})
+                continue
+
+            source_file = Path(urlparse(url).path).name or "remote-report"
+            try:
+                records = parse_cot_file_from_text(html_text, source_file=source_file)
+            except Exception as exc:
+                error_text = f"{url}: parse error — {exc}"
+                errors.append(error_text)
+                url_results.append({"url": url, "error": error_text})
+                continue
+
+            if not records:
+                error_text = f"{url}: no target instruments found"
+                errors.append(error_text)
+                url_results.append({"url": url, "error": error_text})
+                continue
+
+            created_for_url = 0
+            updated_for_url = 0
+            for rec in records:
+                defaults = ScrapedCotReport.defaults_from_dict(rec, import_log=log)
+                _, was_created = ScrapedCotReport.objects.update_or_create(
+                    name=rec["name"],
+                    as_of_date=rec["as_of_date"],
+                    defaults=defaults,
+                )
+                if was_created:
+                    created += 1
+                    created_for_url += 1
+                else:
+                    updated += 1
+                    updated_for_url += 1
+
+            url_results.append({
+                "url": url,
+                "records": len(records),
+                "created": created_for_url,
+                "updated": updated_for_url,
+            })
+
+        log.mark_complete(created=created, updated=updated, errors="\n".join(errors))
+
+        return render(request, self.template_name, {
+            "total_urls": total_urls,
+            "last_log": log,
+            "recent": ScrapedCotReport.objects.order_by("-as_of_date", "name")[:20],
+            "scrape_results": {
+                "created": created,
+                "updated": updated,
+                "errors": errors,
+                "url_results": url_results,
+            },
         })
