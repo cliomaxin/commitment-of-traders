@@ -553,7 +553,7 @@
     <!-- Primary navigation -->
     <nav class="nav-primary">
       {% for item in nav_items %}
-        <a href="{{ item.url }}" class="{% if request.path == item.url %}active{% elif item.url == '/signals/' and request.path == '/Historical_Data/historical/' %}active{% elif item.url == '/donate/' and request.path == '/Handle_Raw_COT/upload/' %}active{% endif %}">{{ item.label }}</a>
+        <a href="{{ item.url }}" class="{% if request.path == item.url %}active{% elif item.url == '/historicalCOTTree/' and request.path == '/Historical_Data/historical/' %}active{% elif item.url == '/import/' and request.path == '/Handle_Raw_COT/upload/' %}active{% endif %}">{{ item.label }}</a>
       {% endfor %}
     </nav>
 

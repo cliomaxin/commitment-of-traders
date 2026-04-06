@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 from django.db import models
-from Handle_Raw_COT.models import ScrapedCotReport
+from Handle_Raw_COT.models import CotReport
 
 # Create your views here.
 
@@ -9,20 +9,20 @@ def get_nav_items():
         {'url': '/', 'label': 'Recent COT'},
         {'url': '/dates/', 'label': 'Historical COT Tabled'},
         {'url': '/analysis/', 'label': 'Recent COT Analysis'},
-        {'url': '/historicalCOTTree', 'label': 'Historical COT Tree'},
+        {'url': '/historicalCOTTree/', 'label': 'Historical COT Tree'},
         {'url': '/import/', 'label': 'Import COT'},
     ]
 
 def index(request):
     # Get the latest date
-    latest_date = ScrapedCotReport.objects.order_by('-as_of_date').values_list('as_of_date', flat=True).first()
+    latest_date = CotReport.objects.order_by('-as_of_date').values_list('as_of_date', flat=True).first()
     if latest_date:
-        reports = ScrapedCotReport.objects.filter(as_of_date=latest_date).order_by('name')
+        reports = CotReport.objects.filter(as_of_date=latest_date).order_by('name')
     else:
-        reports = ScrapedCotReport.objects.none()
+        reports = CotReport.objects.none()
     
     # Get all available dates for navigation
-    all_dates = ScrapedCotReport.objects.order_by('-as_of_date').values_list('as_of_date', flat=True).distinct()
+    all_dates = CotReport.objects.order_by('-as_of_date').values_list('as_of_date', flat=True).distinct()
     
     # Navigation items
     nav_items = get_nav_items()
@@ -37,7 +37,7 @@ def index(request):
 
 def date_list(request):
     # Get all available dates with counts
-    dates_with_counts = ScrapedCotReport.objects.values('as_of_date').annotate(
+    dates_with_counts = CotReport.objects.values('as_of_date').annotate(
         count=models.Count('id')
     ).order_by('-as_of_date')
     
@@ -53,7 +53,7 @@ def date_detail(request, date_str):
     from datetime import datetime
     try:
         date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
-        reports = ScrapedCotReport.objects.filter(as_of_date=date_obj).order_by('name')
+        reports = CotReport.objects.filter(as_of_date=date_obj).order_by('name')
         
         # Navigation items
         nav_items = get_nav_items()
@@ -62,7 +62,7 @@ def date_detail(request, date_str):
             'reports': reports,
             'instruments_count': reports.count(),
             'latest_date': date_obj,
-            'all_dates': ScrapedCotReport.objects.order_by('-as_of_date').values_list('as_of_date', flat=True).distinct(),
+            'all_dates': CotReport.objects.order_by('-as_of_date').values_list('as_of_date', flat=True).distinct(),
             'is_historical': True,
             'nav_items': nav_items,
         })
@@ -74,11 +74,11 @@ def date_detail(request, date_str):
 
 def analysis(request):
     # Get the latest date
-    latest_date = ScrapedCotReport.objects.order_by('-as_of_date').values_list('as_of_date', flat=True).first()
+    latest_date = CotReport.objects.order_by('-as_of_date').values_list('as_of_date', flat=True).first()
     if latest_date:
-        reports = ScrapedCotReport.objects.filter(as_of_date=latest_date).order_by('name')
+        reports = CotReport.objects.filter(as_of_date=latest_date).order_by('name')
     else:
-        reports = ScrapedCotReport.objects.none()
+        reports = CotReport.objects.none()
     
     # Determine signals for each report
     for report in reports:
@@ -112,7 +112,7 @@ def analysis(request):
     selling = [report.get_name_display() for report in reports if report.signal == 'Selling']
     
     # Get all available dates for navigation
-    all_dates = ScrapedCotReport.objects.order_by('-as_of_date').values_list('as_of_date', flat=True).distinct()
+    all_dates = CotReport.objects.order_by('-as_of_date').values_list('as_of_date', flat=True).distinct()
     
     # Navigation items
     nav_items = get_nav_items()
@@ -132,10 +132,10 @@ def analysis_historical(request):
     # Get all available dates with analysis summaries
     dates_with_analysis = []
     
-    all_dates = ScrapedCotReport.objects.order_by('-as_of_date').values_list('as_of_date', flat=True).distinct()
+    all_dates = CotReport.objects.order_by('-as_of_date').values_list('as_of_date', flat=True).distinct()
     
     for date in all_dates:
-        reports = ScrapedCotReport.objects.filter(as_of_date=date).order_by('name')
+        reports = CotReport.objects.filter(as_of_date=date).order_by('name')
         
         # Determine signals for each report
         buying = []

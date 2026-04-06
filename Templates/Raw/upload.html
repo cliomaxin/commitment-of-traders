@@ -377,8 +377,8 @@
       <a href="{% url 'Display_Data:dashboard' %}">Recent COT</a>
       <a href="/dates/">Historical COT Tabled</a>
       <a href="/analysis/">Recent COT Analysis</a>
-      <a href="/signals/">Historical COT Tree</a>
-      <a href="/donate/">Import COT</a>
+      <a href="/historicalCOTTree/">Historical COT Tree</a>
+      <a href="/import/">Import COT</a>
       <a href="{% url 'Handle_Raw_COT:scraping' %}" class="active">Scrape URLs</a>
     </nav>
     <div class="header-right">
@@ -543,7 +543,7 @@
     <nav style="display:flex;gap:1.5rem;">
       <a href="{% url 'Handle_Raw_COT:upload' %}" style="font-family:var(--mono);font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-3);">Import</a>
       <a href="{% url 'Display_Data:dashboard' %}" style="font-family:var(--mono);font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-3);">Recent COT</a>
-      <a href="/donate/" style="font-family:var(--mono);font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-3);">Donate</a>
+      <a href="/import/" style="font-family:var(--mono);font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-3);">Import COT</a>
     </nav>
     <span style="font-family:var(--mono);font-size:0.6rem;color:var(--text-3);">Data: CFTC.gov &nbsp;·&nbsp; © {% now "Y" %} Maksim Felix</span>
   </div>
