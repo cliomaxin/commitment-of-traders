@@ -8,6 +8,9 @@
 # ─────────────────────────────────────────────────────────────────────────────
 
 import requests
+import logging
+import threading
+import time
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -15,6 +18,7 @@ from django.shortcuts import render
 from django.views import View
 from django.http import JsonResponse
 from django.utils import timezone
+from django.core.cache import cache
 
 from .models import CotReport, ImportLog, ScrapedCotReport
 from .cot_parser import parse_cot_file_from_text
@@ -215,11 +219,30 @@ class ScrapeCotLinksView(View):
         })
 
     def post(self, request):
+        # Enable requests logging
+        logging.basicConfig()
+        logging.getLogger("requests.packages.urllib3").setLevel(logging.DEBUG)
+        logging.getLogger("requests.packages.urllib3.connectionpool").setLevel(logging.DEBUG)
+
         urls = list(ExtrapolatedReport.objects.order_by("category", "report_date").values_list("url", flat=True))
         total_urls = len(urls)
 
+        # Generate a unique task ID
+        import uuid
+        task_id = str(uuid.uuid4())
+
+        # Start scraping in background thread
+        thread = threading.Thread(target=self._scrape_urls, args=(task_id, urls, request.user if request.user.is_authenticated else None))
+        thread.start()
+
+        # Return immediately with task ID
+        return JsonResponse({"task_id": task_id, "total_urls": total_urls})
+
+    def _scrape_urls(self, task_id, urls, user):
+        cache.set(f"scrape_progress_{task_id}", {"status": "starting", "current": 0, "total": len(urls), "message": "Initializing scrape..."}, timeout=3600)
+
         log = ImportLog.objects.create(
-            uploaded_by  = request.user if request.user.is_authenticated else None,
+            uploaded_by  = user,
             filename     = f"remote-urls-scrape-{timezone.now():%Y%m%d%H%M%S}.txt",
             file_size_kb = 0,
             status       = "pending",
@@ -235,7 +258,16 @@ class ScrapeCotLinksView(View):
         url_results = []
         errors = []
 
-        for url in urls:
+        for i, url in enumerate(urls):
+            cache.set(f"scrape_progress_{task_id}", {
+                "status": "processing",
+                "current": i + 1,
+                "total": len(urls),
+                "message": f"Processing URL: {url}",
+                "url": url
+            }, timeout=3600)
+
+            print(f"Processing URL: {url}")
             try:
                 response = session.get(url, timeout=20)
                 response.raise_for_status()
@@ -286,14 +318,23 @@ class ScrapeCotLinksView(View):
 
         log.mark_complete(created=created, updated=updated, errors="\n".join(errors))
 
-        return render(request, self.template_name, {
-            "total_urls": total_urls,
-            "last_log": log,
-            "recent": ScrapedCotReport.objects.order_by("-as_of_date", "name")[:20],
-            "scrape_results": {
+        cache.set(f"scrape_progress_{task_id}", {
+            "status": "completed",
+            "current": len(urls),
+            "total": len(urls),
+            "message": "Scraping completed",
+            "results": {
                 "created": created,
                 "updated": updated,
                 "errors": errors,
                 "url_results": url_results,
-            },
-        })
+            }
+        }, timeout=3600)
+
+
+class ScrapeProgressView(View):
+    def get(self, request, task_id):
+        progress = cache.get(f"scrape_progress_{task_id}")
+        if progress:
+            return JsonResponse(progress)
+        return JsonResponse({"status": "not_found"}, status=404)

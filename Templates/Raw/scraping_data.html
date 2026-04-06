@@ -170,7 +170,7 @@
       {% if last_log %}
       <p>Last scrape session: <strong>{{ last_log.uploaded_at|date:"d M Y H:i" }}</strong> — status <strong>{{ last_log.get_status_display }}</strong></p>
       {% endif %}
-      <form method="post" action="{% url 'Handle_Raw_COT:scraping' %}">
+      <form id="scrape-form" method="post" action="{% url 'Handle_Raw_COT:scraping' %}">
         {% csrf_token %}
         <button type="submit" class="btn-primary">Scrape stored report URLs</button>
       </form>
@@ -263,5 +263,103 @@
     </div>
   </div>
 </div>
+
+<script>
+document.getElementById('scrape-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    fetch(this.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.task_id) {
+            openProgressPopup(data.task_id, data.total_urls);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error starting scrape');
+    });
+});
+
+function openProgressPopup(taskId, totalUrls) {
+    const popup = window.open('', 'scrapeProgress', 'width=600,height=400,scrollbars=yes,resizable=yes');
+    
+    popup.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Scraping Progress</title>
+            <style>
+                body { font-family: Arial, sans-serif; padding: 20px; background: #f0f0f0; }
+                .progress { margin: 20px 0; }
+                .bar { background: #ddd; height: 20px; border-radius: 10px; overflow: hidden; }
+                .fill { background: #4CAF50; height: 100%; width: 0%; transition: width 0.3s; }
+                .message { margin: 10px 0; font-weight: bold; }
+                .url { font-size: 0.9em; color: #666; word-break: break-all; }
+            </style>
+        </head>
+        <body>
+            <h2>Scraping Progress</h2>
+            <div class="progress">
+                <div class="bar">
+                    <div class="fill" id="progress-fill"></div>
+                </div>
+                <div id="progress-text">0 / ${totalUrls}</div>
+            </div>
+            <div class="message" id="message">Initializing...</div>
+            <div class="url" id="current-url"></div>
+        </body>
+        </html>
+    `);
+    
+    popup.document.close();
+    
+    // Start polling for progress
+    const pollInterval = setInterval(() => {
+        fetch(`/Handle_Raw_COT/scraping/progress/${taskId}/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'not_found') {
+                clearInterval(pollInterval);
+                popup.document.getElementById('message').textContent = 'Progress not found';
+                return;
+            }
+            
+            const fill = popup.document.getElementById('progress-fill');
+            const text = popup.document.getElementById('progress-text');
+            const message = popup.document.getElementById('message');
+            const urlDiv = popup.document.getElementById('current-url');
+            
+            const percent = (data.current / data.total) * 100;
+            fill.style.width = percent + '%';
+            text.textContent = `${data.current} / ${data.total}`;
+            message.textContent = data.message;
+            urlDiv.textContent = data.url || '';
+            
+            if (data.status === 'completed') {
+                clearInterval(pollInterval);
+                message.textContent = 'Scraping completed!';
+                // Optionally reload the main page to show results
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+            }
+        })
+        .catch(error => {
+            console.error('Error polling progress:', error);
+            clearInterval(pollInterval);
+        });
+    }, 1000); // Poll every second
+}
+</script>
+
 </body>
 </html>
