@@ -7,3 +7,14 @@ I need a functionality that parses through the links one by one, takes note of t
 Basically the idea is that I want to scrap data off of the cftc website with the reference of the stored report urls. It should be done at a click of a button. The button should be located on scraping_data.html.
 
 Tell me which scrapping libraries I need to install to make it easier for you to scrap the data
+
+
+
+
+
+Add a functionality where if a button (in scraping_data.html) is clicked, it should check whether there are missing scrapped data that when referenced to the urls stored on the model -  ExtrapolatedReport in the app - Get_Data. If any of the data is missing, it should update by scrapping the report.
+The intention of this button is to reduce load time instead of scraping all urls for all COT reports, it just scraps the missing and updated ones
+
+
+Create a list of all failed scrapped urls on the scraping_data.html - each with a button that lets you retry again individually on the right side. This is to help me reduce the load time
+

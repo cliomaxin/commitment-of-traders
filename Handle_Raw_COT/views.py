@@ -18,6 +18,7 @@ from django.shortcuts import render
 from django.views import View
 from django.http import JsonResponse
 from django.utils import timezone
+from django.db import models
 from django.core.cache import cache
 
 from .models import CotReport, ImportLog, ScrapedCotReport
@@ -210,12 +211,27 @@ class ScrapeCotLinksView(View):
 
     def get(self, request):
         total_urls = ExtrapolatedReport.objects.count()
+        
+        # Calculate missing/newer URLs for selective scraping
+        latest_scraped_date = ScrapedCotReport.objects.aggregate(max_date=models.Max('as_of_date'))['max_date']
+        if latest_scraped_date:
+            missing_urls = ExtrapolatedReport.objects.filter(report_date__gt=latest_scraped_date).count()
+        else:
+            # If no scraped data, show count of recent reports that would be scraped
+            missing_urls = min(10, ExtrapolatedReport.objects.count())
+        
         last_log = ImportLog.objects.filter(filename__startswith="remote-urls-scrape").order_by("-uploaded_at").first()
         recent = ScrapedCotReport.objects.order_by("-as_of_date", "name")[:20]
+        
+        # Check for recent scraping results
+        scrape_results = cache.get('last_scrape_results')
+        
         return render(request, self.template_name, {
             "total_urls": total_urls,
+            "missing_urls": missing_urls,
             "last_log": last_log,
             "recent": recent,
+            "scrape_results": scrape_results,
         })
 
     def post(self, request):
@@ -224,7 +240,31 @@ class ScrapeCotLinksView(View):
         logging.getLogger("requests.packages.urllib3").setLevel(logging.DEBUG)
         logging.getLogger("requests.packages.urllib3.connectionpool").setLevel(logging.DEBUG)
 
-        urls = list(ExtrapolatedReport.objects.order_by("category", "report_date").values_list("url", flat=True))
+        # Check if selective scraping is requested
+        is_selective = 'selective' in request.POST
+        
+        if is_selective:
+            # Get the latest scraped date
+            latest_scraped_date = ScrapedCotReport.objects.aggregate(max_date=models.Max('as_of_date'))['max_date']
+            
+            if latest_scraped_date:
+                # Only scrape reports newer than the latest scraped date
+                extrapolated_reports = ExtrapolatedReport.objects.filter(report_date__gt=latest_scraped_date).order_by("category", "report_date")
+                urls = list(extrapolated_reports.values_list("url", flat=True))
+                print(f"DEBUG: Selective scraping - latest scraped date: {latest_scraped_date}")
+                print(f"DEBUG: Found {len(urls)} newer reports to scrape")
+                for report in extrapolated_reports:
+                    print(f"DEBUG: Will scrape newer report: {report.report_date} - {report.url}")
+            else:
+                # No scraped data yet, scrape the most recent reports (last 10 or so)
+                extrapolated_reports = ExtrapolatedReport.objects.order_by("-report_date")[:10]
+                urls = list(extrapolated_reports.values_list("url", flat=True))
+                print(f"DEBUG: No scraped data found, scraping {len(urls)} most recent reports")
+        else:
+            # Scrape all URLs
+            urls = list(ExtrapolatedReport.objects.order_by("category", "report_date").values_list("url", flat=True))
+            print(f"DEBUG: Full scraping will process {len(urls)} URLs")
+        
         total_urls = len(urls)
 
         # Generate a unique task ID
@@ -232,14 +272,15 @@ class ScrapeCotLinksView(View):
         task_id = str(uuid.uuid4())
 
         # Start scraping in background thread
-        thread = threading.Thread(target=self._scrape_urls, args=(task_id, urls, request.user if request.user.is_authenticated else None))
+        thread = threading.Thread(target=self._scrape_urls, args=(task_id, urls, request.user if request.user.is_authenticated else None, is_selective))
         thread.start()
 
         # Return immediately with task ID
-        return JsonResponse({"task_id": task_id, "total_urls": total_urls})
+        return JsonResponse({"task_id": task_id, "total_urls": total_urls, "selective": is_selective})
 
-    def _scrape_urls(self, task_id, urls, user):
-        cache.set(f"scrape_progress_{task_id}", {"status": "starting", "current": 0, "total": len(urls), "message": "Initializing scrape..."}, timeout=3600)
+    def _scrape_urls(self, task_id, urls, user, is_selective=False):
+        scrape_type = "selective" if is_selective else "full"
+        cache.set(f"scrape_progress_{task_id}", {"status": "starting", "current": 0, "total": len(urls), "message": f"Initializing {scrape_type} scrape..."}, timeout=3600)
 
         log = ImportLog.objects.create(
             uploaded_by  = user,
@@ -257,6 +298,7 @@ class ScrapeCotLinksView(View):
         updated = 0
         url_results = []
         errors = []
+        failed_urls = []  # Track failed URLs for retry
 
         for i, url in enumerate(urls):
             cache.set(f"scrape_progress_{task_id}", {
@@ -276,6 +318,7 @@ class ScrapeCotLinksView(View):
                 error_text = f"{url}: fetch failed — {exc}"
                 errors.append(error_text)
                 url_results.append({"url": url, "error": error_text})
+                failed_urls.append({"url": url, "error": str(exc), "error_type": "fetch"})
                 continue
 
             source_file = Path(urlparse(url).path).name or "remote-report"
@@ -285,12 +328,14 @@ class ScrapeCotLinksView(View):
                 error_text = f"{url}: parse error — {exc}"
                 errors.append(error_text)
                 url_results.append({"url": url, "error": error_text})
+                failed_urls.append({"url": url, "error": str(exc), "error_type": "parse"})
                 continue
 
             if not records:
                 error_text = f"{url}: no target instruments found"
                 errors.append(error_text)
                 url_results.append({"url": url, "error": error_text})
+                failed_urls.append({"url": url, "error": "no target instruments found", "error_type": "no_data"})
                 continue
 
             created_for_url = 0
@@ -328,7 +373,17 @@ class ScrapeCotLinksView(View):
                 "updated": updated,
                 "errors": errors,
                 "url_results": url_results,
+                "failed_urls": failed_urls,
             }
+        }, timeout=3600)
+        
+        # Store as last results for GET method to display
+        cache.set('last_scrape_results', {
+            "created": created,
+            "updated": updated,
+            "errors": errors,
+            "url_results": url_results,
+            "failed_urls": failed_urls,
         }, timeout=3600)
 
 
@@ -338,3 +393,63 @@ class ScrapeProgressView(View):
         if progress:
             return JsonResponse(progress)
         return JsonResponse({"status": "not_found"}, status=404)
+
+
+class RetrySingleUrlView(View):
+    def post(self, request):
+        url = request.POST.get('url')
+        if not url:
+            return JsonResponse({"success": False, "error": "No URL provided"}, status=400)
+
+        # Create a new import log for this retry
+        log = ImportLog.objects.create(
+            uploaded_by=request.user if request.user.is_authenticated else None,
+            filename=f"retry-single-url-{timezone.now():%Y%m%d%H%M%S}.txt",
+            file_size_kb=0,
+            status="pending",
+        )
+
+        try:
+            # Scrape the single URL
+            session = requests.Session()
+            session.headers.update({
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+            })
+
+            response = session.get(url, timeout=20)
+            response.raise_for_status()
+            html_text = response.text
+
+            source_file = Path(urlparse(url).path).name or "remote-report"
+            records = parse_cot_file_from_text(html_text, source_file=source_file)
+
+            if not records:
+                log.mark_complete(created=0, updated=0, errors="No target instruments found")
+                return JsonResponse({"success": False, "error": "No target instruments found"})
+
+            created = 0
+            updated = 0
+            for rec in records:
+                defaults = ScrapedCotReport.defaults_from_dict(rec, import_log=log)
+                _, was_created = ScrapedCotReport.objects.update_or_create(
+                    name=rec["name"],
+                    as_of_date=rec["as_of_date"],
+                    defaults=defaults,
+                )
+                if was_created:
+                    created += 1
+                else:
+                    updated += 1
+
+            log.mark_complete(created=created, updated=updated, errors="")
+            return JsonResponse({
+                "success": True,
+                "created": created,
+                "updated": updated,
+                "records": len(records)
+            })
+
+        except Exception as exc:
+            error_msg = str(exc)
+            log.mark_complete(created=0, updated=0, errors=error_msg)
+            return JsonResponse({"success": False, "error": error_msg})

@@ -7,4 +7,5 @@ urlpatterns = [
     path("upload/", CotUploadView.as_view(), name="upload"),
     path("scraping/", ScrapeCotLinksView.as_view(), name="scraping"),
     path("scraping/progress/<str:task_id>/", ScrapeProgressView.as_view(), name="scraping_progress"),
+    path("scraping/retry/", RetrySingleUrlView.as_view(), name="retry_single_url"),
 ]
