@@ -102,6 +102,27 @@
       border-color: #ff1493;
     }
 
+    button.external-btn {
+      background: #808080;
+      border-color: #808080;
+      position: relative;
+      padding-right: 1.8rem;
+    }
+
+    button.external-btn:hover {
+      background: #696969;
+      border-color: #696969;
+    }
+
+    button.external-btn::after {
+      content: "↗";
+      position: absolute;
+      top: 2px;
+      right: 5px;
+      font-size: 0.8em;
+      color: #f4f1eb;
+    }
+
     .tree-container {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -322,16 +343,16 @@
     <h2 style="margin-top: 0; font-size: 1rem;">Latest CFTC Report Links</h2>
     <div class="buttons">
       <a href="https://www.cftc.gov/dea/futures/deacmesf.htm" target="_blank" class="external-link">
-        <button type="button">Currencies and Bitcoin</button>
+        <button type="button" class="external-btn">Currencies and Bitcoin</button>
       </a>
       <a href="https://www.cftc.gov/dea/futures/deacmxsf.htm" target="_blank" class="external-link">
-        <button type="button">Metals</button>
+        <button type="button" class="external-btn">Metals</button>
       </a>
     </div>
   </div>
 
   <h1>CFTC Historical URL Extrapolation</h1>
-  <p style="margin-bottom: 1.5rem; color: var(--ink-muted);">Generate and manage historical CFTC COT report URLs from 2005 (January 4, 2005) onwards.</p>
+  <p style="margin-bottom: 1.5rem; color: var(--ink-muted);">Generate and manage historical CFTC COT report URLs from 2005 (January 4, 2005) onwards (For Currencies, Bitcoin and Metals)</p>
 
   {% if message %}
     <div class="notice">{{ message }}</div>
