@@ -1,0 +1,1568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maksim Felix — CFTC COT Data Tree</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+
+<style>
+  /* ─────────────────────────────────────────────
+     DESIGN TOKENS
+  ───────────────────────────────────────────── */
+  :root {
+    --bg:           #f4f1eb;
+    --bg-dark:      #1a1a18;
+    --surface:      #ffffff;
+    --surface-alt:  #ede9e0;
+    --border:       #d8d2c4;
+    --border-heavy: #b0a890;
+
+    --ink:          #1a1a18;
+    --ink-muted:    #5c5849;
+    --ink-faint:    #9e9888;
+
+    --gold:         #8b6914;
+    --gold-light:   #c9a64a;
+    --green:        #2d6a4f;
+    --green-light:  #4a9e76;
+    --blue:         #1a4a7a;
+    --blue-light:   #3a7abf;
+
+    --font-display: 'DM Serif Display', Georgia, serif;
+    --font-mono:    'DM Mono', 'Courier New', monospace;
+    --font-sans:    'DM Sans', system-ui, sans-serif;
+
+    --radius:       3px;
+    --shadow:       0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.04);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  a { color: inherit; text-decoration: none; }
+
+  /* ─────────────────────────────────────────────
+     HEADER / NAV
+  ───────────────────────────────────────────── */
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 200;
+    background: var(--bg-dark);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .header-inner {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 0 2rem;
+    height: 58px;
+    display: flex;
+    align-items: center;
+    gap: 2.5rem;
+  }
+
+  .logo {
+    display: flex;
+    flex-direction: column;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .logo-name {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    color: #f4f1eb;
+    letter-spacing: -0.01em;
+  }
+  .logo-tag {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--gold-light);
+    margin-top: 1px;
+  }
+
+  .nav-primary {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    flex: 1;
+  }
+  .nav-primary a {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(244,241,235,0.5);
+    padding: 0.4rem 0.9rem;
+    border-radius: var(--radius);
+    transition: color 0.15s, background 0.15s;
+  }
+  .nav-primary a:hover, .nav-primary a.active {
+    color: #f4f1eb;
+    background: rgba(255,255,255,0.07);
+  }
+  .nav-primary a.active { color: var(--gold-light); }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-left: auto;
+  }
+
+  .report-date {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    color: rgba(244,241,235,0.35);
+    text-transform: uppercase;
+  }
+
+  .btn-contact {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gold-light);
+    border: 1px solid rgba(201,166,74,0.35);
+    padding: 0.38rem 1rem;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.15s;
+    background: transparent;
+  }
+  .btn-contact:hover {
+    background: var(--gold-light);
+    color: var(--bg-dark);
+    border-color: var(--gold-light);
+  }
+
+  /* ─────────────────────────────────────────────
+     PAGE HERO
+  ───────────────────────────────────────────── */
+  .page-hero {
+    background: var(--bg-dark);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    padding: 1.75rem 2rem 1.5rem;
+  }
+  .page-hero-inner {
+    max-width: 1440px;
+    margin: 0 auto;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+  }
+
+  .page-hero h1 {
+    font-family: var(--font-display);
+    font-size: 1.85rem;
+    color: #f4f1eb;
+    font-weight: 400;
+    line-height: 1.15;
+    margin-bottom: 0.35rem;
+  }
+  .page-hero h1 em {
+    font-style: italic;
+    color: var(--gold-light);
+  }
+
+  .hero-sub {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(244,241,235,0.35);
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .hero-stats {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+    align-items: flex-end;
+  }
+  .hero-stat { text-align: right; }
+  .hero-stat-label {
+    font-family: var(--font-mono);
+    font-size: 0.58rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(244,241,235,0.3);
+    margin-bottom: 0.2rem;
+  }
+  .hero-stat-value {
+    font-family: var(--font-mono);
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--gold-light);
+  }
+
+  /* ─────────────────────────────────────────────
+     MAIN CONTENT
+  ───────────────────────────────────────────── */
+  .page-body {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2.5rem 2rem 4rem;
+  }
+
+  /* ─────────────────────────────────────────────
+     SEARCH BAR
+  ───────────────────────────────────────────── */
+  .search-bar {
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .search-bar input {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--ink);
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    padding: 0.55rem 1rem;
+    border-radius: var(--radius);
+    outline: none;
+    width: 320px;
+    transition: border-color 0.15s;
+  }
+  .search-bar input:focus { border-color: var(--gold); }
+  .search-bar input::placeholder { color: var(--ink-faint); }
+
+  .expand-all-btn, .collapse-all-btn {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.45rem 1rem;
+    border-radius: var(--radius);
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--ink-muted);
+    transition: all 0.15s;
+  }
+  .expand-all-btn:hover { border-color: var(--gold); color: var(--gold); }
+  .collapse-all-btn:hover { border-color: var(--border-heavy); color: var(--ink); }
+
+  /* ─────────────────────────────────────────────
+     TREE STRUCTURE
+  ───────────────────────────────────────────── */
+  .tree-root {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.8;
+  }
+
+  /* Branch containers */
+  .branch { margin: 0.5rem 0; }
+
+  .branch > ul {
+    list-style: none;
+    margin-left: 18px;
+    padding-left: 14px;
+    border-left: 1px solid var(--border);
+    overflow: hidden;
+    transition: max-height 0.25s ease;
+  }
+
+  .branch > ul.collapsed {
+    max-height: 0 !important;
+  }
+
+  .branch li { margin: 4px 0; }
+
+  /* Toggle headers */
+  .branch-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    user-select: none;
+    padding: 0.3rem 0.5rem;
+    border-radius: var(--radius);
+    transition: background 0.12s;
+  }
+  .branch-toggle:hover { background: var(--surface-alt); }
+
+  .toggle-icon {
+    display: inline-block;
+    width: 14px;
+    text-align: center;
+    font-size: 10px;
+    color: var(--ink-faint);
+    transition: transform 0.2s;
+    flex-shrink: 0;
+  }
+  .branch-toggle.open .toggle-icon { transform: rotate(90deg); }
+
+  /* ─── Main section labels (3 branches) ─── */
+  .section-label {
+    font-weight: 500;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+  }
+  .section-label.forex  { color: var(--gold); }
+  .section-label.metals { color: var(--green-light); }
+  .section-label.crypto { color: var(--blue-light); }
+
+  /* ─── Instrument label ─── */
+  .instrument-label {
+    font-weight: 500;
+    color: var(--ink);
+    font-size: 12.5px;
+  }
+
+  /* ─── Report type label ─── */
+  .report-label {
+    color: var(--ink-muted);
+    font-size: 12px;
+  }
+
+  /* ─── Year label ─── */
+  .year-label {
+    color: var(--ink-muted);
+    font-size: 12px;
+    font-style: italic;
+  }
+
+  /* ─── Current link ─── */
+  a.current-link {
+    color: var(--gold);
+    font-weight: 500;
+    font-size: 12.5px;
+  }
+  a.current-link:hover { color: var(--gold-light); text-decoration: underline; }
+
+  /* ─── Historical release link ─── */
+  a.release-link {
+    color: var(--ink);
+    font-size: 12px;
+  }
+  a.release-link:hover {
+    color: var(--gold);
+    text-decoration: underline;
+  }
+
+  /* ─── Bulk / other link ─── */
+  a.bulk-link {
+    color: var(--ink-muted);
+    font-size: 12px;
+    text-decoration: underline dotted;
+  }
+  a.bulk-link:hover { color: var(--ink); }
+
+  /* Section divider strip */
+  .section-strip {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0.5rem;
+    margin-bottom: 0.25rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-strip-icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 500;
+    flex-shrink: 0;
+  }
+  .section-strip-icon.forex  { background: rgba(139,105,20,0.12); color: var(--gold); }
+  .section-strip-icon.metals { background: rgba(45,106,79,0.12);  color: var(--green-light); }
+  .section-strip-icon.crypto { background: rgba(26,74,122,0.12);  color: var(--blue-light); }
+
+  .section-strip-title {
+    font-family: var(--font-sans);
+    font-weight: 500;
+    font-size: 13.5px;
+    letter-spacing: 0.01em;
+  }
+
+  .section-strip-sub {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-left: auto;
+  }
+
+  /* ─── Count badges ─── */
+  .release-count {
+    font-family: var(--font-mono);
+    font-size: 0.58rem;
+    color: var(--ink-faint);
+    background: var(--surface-alt);
+    border: 1px solid var(--border);
+    padding: 1px 5px;
+    border-radius: 10px;
+    margin-left: 4px;
+    vertical-align: middle;
+  }
+
+  /* ─────────────────────────────────────────────
+     FOOTER
+  ───────────────────────────────────────────── */
+  .site-footer {
+    background: var(--bg-dark);
+    border-top: 1px solid rgba(255,255,255,0.06);
+    padding: 1.5rem 2rem;
+  }
+  .footer-inner {
+    max-width: 1440px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+  }
+  .footer-logo {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    color: rgba(244,241,235,0.6);
+  }
+  .footer-links {
+    display: flex;
+    gap: 1.5rem;
+  }
+  .footer-links a {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(244,241,235,0.3);
+    transition: color 0.15s;
+  }
+  .footer-links a:hover { color: rgba(244,241,235,0.7); }
+  .footer-note {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.06em;
+    color: rgba(244,241,235,0.2);
+    margin-left: auto;
+  }
+
+  /* ─────────────────────────────────────────────
+     RESPONSIVE
+  ───────────────────────────────────────────── */
+  @media (max-width: 768px) {
+    .header-inner { padding: 0 1rem; gap: 1rem; }
+    .nav-primary  { display: none; }
+    .page-body    { padding: 1.25rem 1rem 3rem; }
+    .page-hero    { padding: 1.25rem 1rem 1rem; }
+    .hero-stats   { display: none; }
+    .search-bar input { width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════
+     SITE HEADER
+════════════════════════════════════════════ -->
+<header class="site-header">
+  <div class="header-inner">
+    <a href="/" class="logo">
+      <span class="logo-name">Maksim Felix</span>
+      <span class="logo-tag">Markets Intelligence</span>
+    </a>
+    <nav class="nav-primary">
+      <a href="/">Recent COT</a>
+      <a href="/dates/">Historical COT Tabled</a>
+      <a href="/analysis/">Recent COT Analysis</a>
+      <a href="/historicalCOTTree/" class="active">Historical COT Tree</a>
+      <a href="/import/">Import COT</a>
+    </nav>
+    <div class="header-right">
+      <span class="report-date">Updated 22 Mar 2026</span>
+      <a href="https://cliomaxin.github.io/maksimfelix/patreon.html" class="btn-contact">Donate</a>
+    </div>
+  </div>
+</header>
+
+<!-- ════════════════════════════════════════════
+     PAGE HERO
+════════════════════════════════════════════ -->
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div>
+      <h1>CFTC COT — <em>Historical Data Tree</em></h1>
+      <div class="hero-sub">
+        <span>Commitments of Traders</span>
+        <span>Futures Only · Legacy Format</span>
+        <span>2020 → 2026</span>
+      </div>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="hero-stat-label">Branches</div>
+        <div class="hero-stat-value">3</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-label">Source</div>
+        <div class="hero-stat-value" style="font-size:0.8rem;padding-top:4px;">CFTC.gov</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════
+     MAIN CONTENT
+════════════════════════════════════════════ -->
+<main class="page-body">
+
+  <div class="search-bar">
+    <input type="text" id="searchInput" placeholder="Search releases, dates, instruments…" autocomplete="off" />
+    <button class="expand-all-btn" onclick="expandAll()">Expand All</button>
+    <button class="collapse-all-btn" onclick="collapseAll()">Collapse All</button>
+  </div>
+
+  <div class="tree-root" id="treeRoot">
+
+    <!-- ══════════════════════════════════════════
+         BRANCH 1: FOREX MAJOR PAIRS
+    ══════════════════════════════════════════ -->
+    <div class="branch" id="branch-forex">
+      <div class="section-strip">
+        <div class="section-strip-icon forex">FX</div>
+        <span class="section-strip-title">Forex Major Pairs</span>
+        <span class="section-strip-sub">EUR · JPY · GBP · CAD · CHF · AUD · NZD · MXN</span>
+      </div>
+
+      <div class="branch-toggle open" onclick="toggleBranch(this)">
+        <span class="toggle-icon">▶</span>
+        <span class="section-label forex">FX — Major Currency Pairs</span>
+      </div>
+      <ul style="max-height:9999px">
+
+        <!-- CURRENT REPORT -->
+        <li>
+          <div class="branch-toggle open" onclick="toggleBranch(this)">
+            <span class="toggle-icon">▶</span>
+            <span class="report-label">Current Report (Live)</span>
+          </div>
+          <ul style="max-height:9999px">
+            <li><a class="current-link" href="https://www.cftc.gov/dea/futures/deacmesf.htm" target="_blank">→ CME Futures Only — Current Release</a></li>
+            <li><a class="current-link" href="https://www.cftc.gov/dea/options/deacmesfo.htm" target="_blank">→ CME Futures + Options — Current Release</a></li>
+            <li><a class="current-link" href="https://www.cftc.gov/dea/newcot/FinFutWk.htm" target="_blank">→ TFF Financial Futures — Current Release</a></li>
+          </ul>
+        </li>
+
+        <!-- HISTORICAL RELEASES 2020–2026 -->
+        <li>
+          <div class="branch-toggle open" onclick="toggleBranch(this)">
+            <span class="toggle-icon">▶</span>
+            <span class="report-label">Historical Releases</span>
+          </div>
+          <ul style="max-height:9999px">
+
+            <!-- 2026 -->
+            <li>
+              <div class="branch-toggle open" onclick="toggleBranch(this)">
+                <span class="toggle-icon">▶</span>
+                <span class="year-label">2026</span>
+                <span class="release-count">12</span>
+              </div>
+              <ul style="max-height:9999px">
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2026/futures/deacmesf031726.htm" target="_blank">Mar 17 2026</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2026/futures/deacmesf031026.htm" target="_blank">Mar 10 2026</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2026/futures/deacmesf030326.htm" target="_blank">Mar 03 2026</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2026/futures/deacmesf022426.htm" target="_blank">Feb 24 2026</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2026/futures/deacmesf021726.htm" target="_blank">Feb 17 2026</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2026/futures/deacmesf021026.htm" target="_blank">Feb 10 2026</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2026/futures/deacmesf020326.htm" target="_blank">Feb 03 2026</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2026/futures/deacmesf012726.htm" target="_blank">Jan 27 2026</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2026/futures/deacmesf012026.htm" target="_blank">Jan 20 2026</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2026/futures/deacmesf011326.htm" target="_blank">Jan 13 2026</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2026/futures/deacmesf010626.htm" target="_blank">Jan 06 2026</a></li>
+              </ul>
+            </li>
+
+            <!-- 2025 -->
+            <li>
+              <div class="branch-toggle open" onclick="toggleBranch(this)">
+                <span class="toggle-icon">▶</span>
+                <span class="year-label">2025</span>
+                <span class="release-count">52</span>
+              </div>
+              <ul style="max-height:9999px">
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf123025.htm" target="_blank">Dec 30 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf122325.htm" target="_blank">Dec 23 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf121625.htm" target="_blank">Dec 16 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf120925.htm" target="_blank">Dec 09 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf120225.htm" target="_blank">Dec 02 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf112525.htm" target="_blank">Nov 25 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf111825.htm" target="_blank">Nov 18 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf111125.htm" target="_blank">Nov 11 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf110425.htm" target="_blank">Nov 04 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf102825.htm" target="_blank">Oct 28 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf102125.htm" target="_blank">Oct 21 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf101425.htm" target="_blank">Oct 14 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf100725.htm" target="_blank">Oct 07 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf093025.htm" target="_blank">Sep 30 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf092325.htm" target="_blank">Sep 23 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf091625.htm" target="_blank">Sep 16 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf090925.htm" target="_blank">Sep 09 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf090225.htm" target="_blank">Sep 02 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf082625.htm" target="_blank">Aug 26 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf081925.htm" target="_blank">Aug 19 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf081225.htm" target="_blank">Aug 12 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf080525.htm" target="_blank">Aug 05 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf072925.htm" target="_blank">Jul 29 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf072225.htm" target="_blank">Jul 22 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf071525.htm" target="_blank">Jul 15 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf070825.htm" target="_blank">Jul 08 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf070125.htm" target="_blank">Jul 01 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf062425.htm" target="_blank">Jun 24 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf061725.htm" target="_blank">Jun 17 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf061025.htm" target="_blank">Jun 10 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf060325.htm" target="_blank">Jun 03 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf052725.htm" target="_blank">May 27 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf052025.htm" target="_blank">May 20 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf051325.htm" target="_blank">May 13 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf050625.htm" target="_blank">May 06 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf042925.htm" target="_blank">Apr 29 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf042225.htm" target="_blank">Apr 22 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf041525.htm" target="_blank">Apr 15 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf040825.htm" target="_blank">Apr 08 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf040125.htm" target="_blank">Apr 01 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf032525.htm" target="_blank">Mar 25 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf031825.htm" target="_blank">Mar 18 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf031125.htm" target="_blank">Mar 11 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf030425.htm" target="_blank">Mar 04 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf022525.htm" target="_blank">Feb 25 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf021825.htm" target="_blank">Feb 18 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf021125.htm" target="_blank">Feb 11 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf020425.htm" target="_blank">Feb 04 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf012825.htm" target="_blank">Jan 28 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf012125.htm" target="_blank">Jan 21 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf011425.htm" target="_blank">Jan 14 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf010725.htm" target="_blank">Jan 07 2025</a></li>
+              </ul>
+            </li>
+
+            <!-- 2024 -->
+            <li>
+              <div class="branch-toggle" onclick="toggleBranch(this)">
+                <span class="toggle-icon">▶</span>
+                <span class="year-label">2024</span>
+                <span class="release-count">52</span>
+              </div>
+              <ul class="collapsed">
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf123124.htm" target="_blank">Dec 31 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf122424.htm" target="_blank">Dec 24 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf121724.htm" target="_blank">Dec 17 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf121024.htm" target="_blank">Dec 10 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf120324.htm" target="_blank">Dec 03 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf112624.htm" target="_blank">Nov 26 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf111924.htm" target="_blank">Nov 19 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf111224.htm" target="_blank">Nov 12 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf110524.htm" target="_blank">Nov 05 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf102924.htm" target="_blank">Oct 29 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf102224.htm" target="_blank">Oct 22 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf101524.htm" target="_blank">Oct 15 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf100824.htm" target="_blank">Oct 08 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf100124.htm" target="_blank">Oct 01 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf092424.htm" target="_blank">Sep 24 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf091724.htm" target="_blank">Sep 17 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf091024.htm" target="_blank">Sep 10 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf090324.htm" target="_blank">Sep 03 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf082724.htm" target="_blank">Aug 27 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf082024.htm" target="_blank">Aug 20 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf081324.htm" target="_blank">Aug 13 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf080624.htm" target="_blank">Aug 06 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf073024.htm" target="_blank">Jul 30 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf072324.htm" target="_blank">Jul 23 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf071624.htm" target="_blank">Jul 16 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf070924.htm" target="_blank">Jul 09 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf070224.htm" target="_blank">Jul 02 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf062524.htm" target="_blank">Jun 25 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf061824.htm" target="_blank">Jun 18 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf061124.htm" target="_blank">Jun 11 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf060424.htm" target="_blank">Jun 04 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf052824.htm" target="_blank">May 28 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf052124.htm" target="_blank">May 21 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf051424.htm" target="_blank">May 14 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf050724.htm" target="_blank">May 07 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf043024.htm" target="_blank">Apr 30 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf042324.htm" target="_blank">Apr 23 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf041624.htm" target="_blank">Apr 16 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf040924.htm" target="_blank">Apr 09 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf040224.htm" target="_blank">Apr 02 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf032624.htm" target="_blank">Mar 26 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf031924.htm" target="_blank">Mar 19 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf031224.htm" target="_blank">Mar 12 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf030524.htm" target="_blank">Mar 05 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf022724.htm" target="_blank">Feb 27 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf022024.htm" target="_blank">Feb 20 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf021324.htm" target="_blank">Feb 13 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf020624.htm" target="_blank">Feb 06 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf013024.htm" target="_blank">Jan 30 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf012324.htm" target="_blank">Jan 23 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf011624.htm" target="_blank">Jan 16 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf010924.htm" target="_blank">Jan 09 2024</a></li>
+              </ul>
+            </li>
+
+            <!-- 2023 -->
+            <li>
+              <div class="branch-toggle" onclick="toggleBranch(this)">
+                <span class="toggle-icon">▶</span>
+                <span class="year-label">2023</span>
+                <span class="release-count">52</span>
+              </div>
+              <ul class="collapsed">
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf123123.htm" target="_blank">Dec 31 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf122623.htm" target="_blank">Dec 26 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf121923.htm" target="_blank">Dec 19 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf121223.htm" target="_blank">Dec 12 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf120523.htm" target="_blank">Dec 05 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf112823.htm" target="_blank">Nov 28 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf112123.htm" target="_blank">Nov 21 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf111423.htm" target="_blank">Nov 14 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf110723.htm" target="_blank">Nov 07 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf103123.htm" target="_blank">Oct 31 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf102423.htm" target="_blank">Oct 24 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf101723.htm" target="_blank">Oct 17 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf101023.htm" target="_blank">Oct 10 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf100323.htm" target="_blank">Oct 03 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf092623.htm" target="_blank">Sep 26 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf091923.htm" target="_blank">Sep 19 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf091223.htm" target="_blank">Sep 12 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf090523.htm" target="_blank">Sep 05 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf082923.htm" target="_blank">Aug 29 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf082223.htm" target="_blank">Aug 22 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf081523.htm" target="_blank">Aug 15 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf080823.htm" target="_blank">Aug 08 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf080123.htm" target="_blank">Aug 01 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf072523.htm" target="_blank">Jul 25 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf071823.htm" target="_blank">Jul 18 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf071123.htm" target="_blank">Jul 11 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf070423.htm" target="_blank">Jul 04 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf062723.htm" target="_blank">Jun 27 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf062023.htm" target="_blank">Jun 20 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf061323.htm" target="_blank">Jun 13 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf060623.htm" target="_blank">Jun 06 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf053023.htm" target="_blank">May 30 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf052323.htm" target="_blank">May 23 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf051623.htm" target="_blank">May 16 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf050923.htm" target="_blank">May 09 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf050223.htm" target="_blank">May 02 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf042523.htm" target="_blank">Apr 25 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf041823.htm" target="_blank">Apr 18 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf041123.htm" target="_blank">Apr 11 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf040423.htm" target="_blank">Apr 04 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf032823.htm" target="_blank">Mar 28 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf032123.htm" target="_blank">Mar 21 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf031423.htm" target="_blank">Mar 14 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf030723.htm" target="_blank">Mar 07 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf022823.htm" target="_blank">Feb 28 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf022123.htm" target="_blank">Feb 21 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf021423.htm" target="_blank">Feb 14 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf020723.htm" target="_blank">Feb 07 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf013123.htm" target="_blank">Jan 31 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf012423.htm" target="_blank">Jan 24 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf011723.htm" target="_blank">Jan 17 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf011023.htm" target="_blank">Jan 10 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf010323.htm" target="_blank">Jan 03 2023</a></li>
+              </ul>
+            </li>
+
+            <!-- 2022 -->
+            <li>
+              <div class="branch-toggle" onclick="toggleBranch(this)">
+                <span class="toggle-icon">▶</span>
+                <span class="year-label">2022</span>
+                <span class="release-count">52</span>
+              </div>
+              <ul class="collapsed">
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf123022.htm" target="_blank">Dec 30 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf122022.htm" target="_blank">Dec 20 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf121322.htm" target="_blank">Dec 13 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf120622.htm" target="_blank">Dec 06 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf112922.htm" target="_blank">Nov 29 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf112222.htm" target="_blank">Nov 22 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf111522.htm" target="_blank">Nov 15 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf110822.htm" target="_blank">Nov 08 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf110122.htm" target="_blank">Nov 01 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf102522.htm" target="_blank">Oct 25 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf101822.htm" target="_blank">Oct 18 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf101122.htm" target="_blank">Oct 11 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf100422.htm" target="_blank">Oct 04 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf092722.htm" target="_blank">Sep 27 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf092022.htm" target="_blank">Sep 20 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf091322.htm" target="_blank">Sep 13 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf090622.htm" target="_blank">Sep 06 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf083022.htm" target="_blank">Aug 30 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf082322.htm" target="_blank">Aug 23 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf081622.htm" target="_blank">Aug 16 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf080922.htm" target="_blank">Aug 09 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf080222.htm" target="_blank">Aug 02 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf072622.htm" target="_blank">Jul 26 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf071922.htm" target="_blank">Jul 19 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf071222.htm" target="_blank">Jul 12 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf070522.htm" target="_blank">Jul 05 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf062822.htm" target="_blank">Jun 28 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf062122.htm" target="_blank">Jun 21 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf061422.htm" target="_blank">Jun 14 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf060722.htm" target="_blank">Jun 07 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf053122.htm" target="_blank">May 31 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf052422.htm" target="_blank">May 24 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf051722.htm" target="_blank">May 17 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf051022.htm" target="_blank">May 10 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf050322.htm" target="_blank">May 03 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf042622.htm" target="_blank">Apr 26 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf041922.htm" target="_blank">Apr 19 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf041222.htm" target="_blank">Apr 12 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf040522.htm" target="_blank">Apr 05 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf032922.htm" target="_blank">Mar 29 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf032222.htm" target="_blank">Mar 22 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf031522.htm" target="_blank">Mar 15 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf030822.htm" target="_blank">Mar 08 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf030122.htm" target="_blank">Mar 01 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf022222.htm" target="_blank">Feb 22 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf021522.htm" target="_blank">Feb 15 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf020822.htm" target="_blank">Feb 08 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf020122.htm" target="_blank">Feb 01 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf012522.htm" target="_blank">Jan 25 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf011822.htm" target="_blank">Jan 18 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf011122.htm" target="_blank">Jan 11 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf010422.htm" target="_blank">Jan 04 2022</a></li>
+              </ul>
+            </li>
+
+            <!-- 2021 -->
+            <li>
+              <div class="branch-toggle" onclick="toggleBranch(this)">
+                <span class="toggle-icon">▶</span>
+                <span class="year-label">2021</span>
+                <span class="release-count">52</span>
+              </div>
+              <ul class="collapsed">
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf123121.htm" target="_blank">Dec 31 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf122121.htm" target="_blank">Dec 21 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf121421.htm" target="_blank">Dec 14 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf120721.htm" target="_blank">Dec 07 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf113021.htm" target="_blank">Nov 30 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf112321.htm" target="_blank">Nov 23 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf111621.htm" target="_blank">Nov 16 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf110921.htm" target="_blank">Nov 09 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf110221.htm" target="_blank">Nov 02 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf102621.htm" target="_blank">Oct 26 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf101921.htm" target="_blank">Oct 19 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf101221.htm" target="_blank">Oct 12 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf100521.htm" target="_blank">Oct 05 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf092821.htm" target="_blank">Sep 28 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf092121.htm" target="_blank">Sep 21 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf091421.htm" target="_blank">Sep 14 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf090721.htm" target="_blank">Sep 07 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf083121.htm" target="_blank">Aug 31 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf082421.htm" target="_blank">Aug 24 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf081721.htm" target="_blank">Aug 17 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf081021.htm" target="_blank">Aug 10 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf080321.htm" target="_blank">Aug 03 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf072721.htm" target="_blank">Jul 27 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf072021.htm" target="_blank">Jul 20 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf071321.htm" target="_blank">Jul 13 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf070621.htm" target="_blank">Jul 06 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf062921.htm" target="_blank">Jun 29 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf062221.htm" target="_blank">Jun 22 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf061521.htm" target="_blank">Jun 15 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf060821.htm" target="_blank">Jun 08 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf060121.htm" target="_blank">Jun 01 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf052521.htm" target="_blank">May 25 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf051821.htm" target="_blank">May 18 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf051121.htm" target="_blank">May 11 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf050421.htm" target="_blank">May 04 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf042721.htm" target="_blank">Apr 27 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf042021.htm" target="_blank">Apr 20 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf041321.htm" target="_blank">Apr 13 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf040621.htm" target="_blank">Apr 06 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf033021.htm" target="_blank">Mar 30 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf032321.htm" target="_blank">Mar 23 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf031621.htm" target="_blank">Mar 16 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf030921.htm" target="_blank">Mar 09 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf030221.htm" target="_blank">Mar 02 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf022321.htm" target="_blank">Feb 23 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf021621.htm" target="_blank">Feb 16 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf020921.htm" target="_blank">Feb 09 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf020221.htm" target="_blank">Feb 02 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf012621.htm" target="_blank">Jan 26 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf011921.htm" target="_blank">Jan 19 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf011221.htm" target="_blank">Jan 12 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf010521.htm" target="_blank">Jan 05 2021</a></li>
+              </ul>
+            </li>
+
+            <!-- 2020 -->
+            <li>
+              <div class="branch-toggle" onclick="toggleBranch(this)">
+                <span class="toggle-icon">▶</span>
+                <span class="year-label">2020</span>
+                <span class="release-count">53</span>
+              </div>
+              <ul class="collapsed">
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf123120.htm" target="_blank">Dec 31 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf122220.htm" target="_blank">Dec 22 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf121520.htm" target="_blank">Dec 15 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf120820.htm" target="_blank">Dec 08 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf120120.htm" target="_blank">Dec 01 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf112420.htm" target="_blank">Nov 24 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf111720.htm" target="_blank">Nov 17 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf111020.htm" target="_blank">Nov 10 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf110320.htm" target="_blank">Nov 03 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf102720.htm" target="_blank">Oct 27 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf102020.htm" target="_blank">Oct 20 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf101320.htm" target="_blank">Oct 13 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf100620.htm" target="_blank">Oct 06 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf092920.htm" target="_blank">Sep 29 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf092220.htm" target="_blank">Sep 22 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf091520.htm" target="_blank">Sep 15 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf090820.htm" target="_blank">Sep 08 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf090120.htm" target="_blank">Sep 01 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf082520.htm" target="_blank">Aug 25 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf081820.htm" target="_blank">Aug 18 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf081120.htm" target="_blank">Aug 11 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf080420.htm" target="_blank">Aug 04 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf072820.htm" target="_blank">Jul 28 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf072120.htm" target="_blank">Jul 21 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf071420.htm" target="_blank">Jul 14 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf070720.htm" target="_blank">Jul 07 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf063020.htm" target="_blank">Jun 30 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf062320.htm" target="_blank">Jun 23 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf061620.htm" target="_blank">Jun 16 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf060920.htm" target="_blank">Jun 09 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf060220.htm" target="_blank">Jun 02 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf052620.htm" target="_blank">May 26 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf051920.htm" target="_blank">May 19 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf051220.htm" target="_blank">May 12 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf050520.htm" target="_blank">May 05 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf042820.htm" target="_blank">Apr 28 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf042120.htm" target="_blank">Apr 21 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf041420.htm" target="_blank">Apr 14 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf040720.htm" target="_blank">Apr 07 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf033120.htm" target="_blank">Mar 31 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf032420.htm" target="_blank">Mar 24 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf031720.htm" target="_blank">Mar 17 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf031020.htm" target="_blank">Mar 10 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf030320.htm" target="_blank">Mar 03 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf022520.htm" target="_blank">Feb 25 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf021820.htm" target="_blank">Feb 18 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf021120.htm" target="_blank">Feb 11 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf020420.htm" target="_blank">Feb 04 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf012820.htm" target="_blank">Jan 28 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf012120.htm" target="_blank">Jan 21 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf011420.htm" target="_blank">Jan 14 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf010720.htm" target="_blank">Jan 07 2020</a></li>
+              </ul>
+            </li>
+
+          </ul>
+        </li>
+
+        <!-- BULK DATA -->
+        <li>
+          <div class="branch-toggle" onclick="toggleBranch(this)">
+            <span class="toggle-icon">▶</span>
+            <span class="report-label">Bulk / ZIP Archives</span>
+          </div>
+          <ul style="max-height:9999px">
+            <li><a class="bulk-link" href="https://www.cftc.gov/MarketReports/CommitmentsofTraders/HistoricalCompressed/index.htm" target="_blank">All Years — Historical ZIP Archives (CFTC)</a></li>
+          </ul>
+        </li>
+
+      </ul>
+    </div><!-- /branch-forex -->
+
+
+    <!-- ══════════════════════════════════════════
+         BRANCH 2: METALS (Gold, Silver)
+    ══════════════════════════════════════════ -->
+    <div class="branch" id="branch-metals" style="margin-top:2rem">
+      <div class="section-strip">
+        <div class="section-strip-icon metals">Au</div>
+        <span class="section-strip-title">Metals — Gold &amp; Silver</span>
+        <span class="section-strip-sub">COMEX · Gold (GC) · Silver (SI)</span>
+      </div>
+
+      <div class="branch-toggle open" onclick="toggleBranch(this)">
+        <span class="toggle-icon">▶</span>
+        <span class="section-label metals">Metals — Gold &amp; Silver (COMEX)</span>
+      </div>
+      <ul style="max-height:9999px">
+
+        <!-- CURRENT -->
+        <li>
+          <div class="branch-toggle open" onclick="toggleBranch(this)">
+            <span class="toggle-icon">▶</span>
+            <span class="report-label">Current Report (Live)</span>
+          </div>
+          <ul style="max-height:9999px">
+            <li><a class="current-link" href="https://www.cftc.gov/dea/futures/deacmxsf.htm" target="_blank">→ COMEX Futures Only — Current Release (Gold, Silver, Copper)</a></li>
+            <li><a class="current-link" href="https://www.cftc.gov/dea/options/deacmxsfo.htm" target="_blank">→ COMEX Futures + Options — Current Release</a></li>
+            <li><a class="current-link" href="https://www.cftc.gov/dea/newcot/DisaggTxt.htm" target="_blank">→ Disaggregated Report — Current Release</a></li>
+          </ul>
+        </li>
+
+        <!-- GOLD sub-branch -->
+        <li>
+          <div class="branch-toggle open" onclick="toggleBranch(this)">
+            <span class="toggle-icon">▶</span>
+            <span class="instrument-label">Gold (GC) — COMEX Futures</span>
+          </div>
+          <ul style="max-height:9999px">
+
+            <li>
+              <div class="branch-toggle open" onclick="toggleBranch(this)">
+                <span class="toggle-icon">▶</span>
+                <span class="report-label">Historical Releases 2020–2026</span>
+              </div>
+              <ul style="max-height:9999px">
+
+                <!-- 2026 Gold -->
+                <li>
+                  <div class="branch-toggle open" onclick="toggleBranch(this)">
+                    <span class="toggle-icon">▶</span>
+                    <span class="year-label">2026</span>
+                    <span class="release-count">11</span>
+                  </div>
+                  <ul style="max-height:9999px">
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2026/futures/deacmxsf031726.htm" target="_blank">Mar 17 2026</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2026/futures/deacmxsf031026.htm" target="_blank">Mar 10 2026</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2026/futures/deacmxsf030326.htm" target="_blank">Mar 03 2026</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2026/futures/deacmxsf022426.htm" target="_blank">Feb 24 2026</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2026/futures/deacmxsf021726.htm" target="_blank">Feb 17 2026</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2026/futures/deacmxsf021026.htm" target="_blank">Feb 10 2026</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2026/futures/deacmxsf020326.htm" target="_blank">Feb 03 2026</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2026/futures/deacmxsf012726.htm" target="_blank">Jan 27 2026</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2026/futures/deacmxsf012026.htm" target="_blank">Jan 20 2026</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2026/futures/deacmxsf011326.htm" target="_blank">Jan 13 2026</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2026/futures/deacmxsf010626.htm" target="_blank">Jan 06 2026</a></li>
+                  </ul>
+                </li>
+
+                <!-- 2025 Gold -->
+                <li>
+                  <div class="branch-toggle" onclick="toggleBranch(this)">
+                    <span class="toggle-icon">▶</span>
+                    <span class="year-label">2025</span>
+                    <span class="release-count">52</span>
+                  </div>
+                  <ul class="collapsed">
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf123025.htm" target="_blank">Dec 30 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf122325.htm" target="_blank">Dec 23 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf121625.htm" target="_blank">Dec 16 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf120925.htm" target="_blank">Dec 09 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf120225.htm" target="_blank">Dec 02 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf112525.htm" target="_blank">Nov 25 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf111825.htm" target="_blank">Nov 18 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf111125.htm" target="_blank">Nov 11 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf110425.htm" target="_blank">Nov 04 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf102825.htm" target="_blank">Oct 28 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf102125.htm" target="_blank">Oct 21 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf101425.htm" target="_blank">Oct 14 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf100725.htm" target="_blank">Oct 07 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf093025.htm" target="_blank">Sep 30 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf092325.htm" target="_blank">Sep 23 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf091625.htm" target="_blank">Sep 16 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf090925.htm" target="_blank">Sep 09 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf090225.htm" target="_blank">Sep 02 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf082625.htm" target="_blank">Aug 26 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf081925.htm" target="_blank">Aug 19 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf081225.htm" target="_blank">Aug 12 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf080525.htm" target="_blank">Aug 05 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf072925.htm" target="_blank">Jul 29 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf072225.htm" target="_blank">Jul 22 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf071525.htm" target="_blank">Jul 15 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf070825.htm" target="_blank">Jul 08 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf070125.htm" target="_blank">Jul 01 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf062425.htm" target="_blank">Jun 24 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf061725.htm" target="_blank">Jun 17 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf061025.htm" target="_blank">Jun 10 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf060325.htm" target="_blank">Jun 03 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf052725.htm" target="_blank">May 27 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf052025.htm" target="_blank">May 20 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf051325.htm" target="_blank">May 13 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf050625.htm" target="_blank">May 06 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf042925.htm" target="_blank">Apr 29 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf042225.htm" target="_blank">Apr 22 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf041525.htm" target="_blank">Apr 15 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf040825.htm" target="_blank">Apr 08 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf040125.htm" target="_blank">Apr 01 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf032525.htm" target="_blank">Mar 25 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf031825.htm" target="_blank">Mar 18 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf031125.htm" target="_blank">Mar 11 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf030425.htm" target="_blank">Mar 04 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf022525.htm" target="_blank">Feb 25 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf021825.htm" target="_blank">Feb 18 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf021125.htm" target="_blank">Feb 11 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf020425.htm" target="_blank">Feb 04 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf012825.htm" target="_blank">Jan 28 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf012125.htm" target="_blank">Jan 21 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf011425.htm" target="_blank">Jan 14 2025</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmxsf010725.htm" target="_blank">Jan 07 2025</a></li>
+                  </ul>
+                </li>
+
+                <!-- 2024–2020 Gold: collapsed year stubs (same COMEX pattern) -->
+                <li>
+                  <div class="branch-toggle" onclick="toggleBranch(this)">
+                    <span class="toggle-icon">▶</span>
+                    <span class="year-label">2024</span>
+                    <span class="release-count">52</span>
+                  </div>
+                  <ul class="collapsed">
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf123124.htm" target="_blank">Dec 31 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf122424.htm" target="_blank">Dec 24 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf121724.htm" target="_blank">Dec 17 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf121024.htm" target="_blank">Dec 10 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf120324.htm" target="_blank">Dec 03 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf112624.htm" target="_blank">Nov 26 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf111924.htm" target="_blank">Nov 19 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf111224.htm" target="_blank">Nov 12 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf110524.htm" target="_blank">Nov 05 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf102924.htm" target="_blank">Oct 29 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf102224.htm" target="_blank">Oct 22 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf101524.htm" target="_blank">Oct 15 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf100824.htm" target="_blank">Oct 08 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf100124.htm" target="_blank">Oct 01 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf092424.htm" target="_blank">Sep 24 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf091724.htm" target="_blank">Sep 17 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf091024.htm" target="_blank">Sep 10 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf090324.htm" target="_blank">Sep 03 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf082724.htm" target="_blank">Aug 27 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf082024.htm" target="_blank">Aug 20 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf081324.htm" target="_blank">Aug 13 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf080624.htm" target="_blank">Aug 06 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf073024.htm" target="_blank">Jul 30 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf072324.htm" target="_blank">Jul 23 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf071624.htm" target="_blank">Jul 16 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf070924.htm" target="_blank">Jul 09 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf070224.htm" target="_blank">Jul 02 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf062524.htm" target="_blank">Jun 25 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf061824.htm" target="_blank">Jun 18 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf061124.htm" target="_blank">Jun 11 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf060424.htm" target="_blank">Jun 04 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf052824.htm" target="_blank">May 28 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf052124.htm" target="_blank">May 21 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf051424.htm" target="_blank">May 14 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf050724.htm" target="_blank">May 07 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf043024.htm" target="_blank">Apr 30 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf042324.htm" target="_blank">Apr 23 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf041624.htm" target="_blank">Apr 16 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf040924.htm" target="_blank">Apr 09 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf040224.htm" target="_blank">Apr 02 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf032624.htm" target="_blank">Mar 26 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf031924.htm" target="_blank">Mar 19 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf031224.htm" target="_blank">Mar 12 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf030524.htm" target="_blank">Mar 05 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf022724.htm" target="_blank">Feb 27 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf022024.htm" target="_blank">Feb 20 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf021324.htm" target="_blank">Feb 13 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf020624.htm" target="_blank">Feb 06 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf013024.htm" target="_blank">Jan 30 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf012324.htm" target="_blank">Jan 23 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf011624.htm" target="_blank">Jan 16 2024</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmxsf010924.htm" target="_blank">Jan 09 2024</a></li>
+                  </ul>
+                </li>
+
+                <!-- 2023 Gold -->
+                <li>
+                  <div class="branch-toggle" onclick="toggleBranch(this)">
+                    <span class="toggle-icon">▶</span>
+                    <span class="year-label">2023</span>
+                    <span class="release-count">52</span>
+                  </div>
+                  <ul class="collapsed">
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmxsf123123.htm" target="_blank">Dec 31 2023</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmxsf122623.htm" target="_blank">Dec 26 2023</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmxsf121923.htm" target="_blank">Dec 19 2023</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmxsf121223.htm" target="_blank">Dec 12 2023</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmxsf010323.htm" target="_blank">Jan 03 2023</a></li>
+                  </ul>
+                </li>
+
+                <!-- 2022 Gold -->
+                <li>
+                  <div class="branch-toggle" onclick="toggleBranch(this)">
+                    <span class="toggle-icon">▶</span>
+                    <span class="year-label">2022</span>
+                    <span class="release-count">52</span>
+                  </div>
+                  <ul class="collapsed">
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmxsf123022.htm" target="_blank">Dec 30 2022</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmxsf010422.htm" target="_blank">Jan 04 2022</a></li>
+                  </ul>
+                </li>
+
+                <!-- 2021 Gold -->
+                <li>
+                  <div class="branch-toggle" onclick="toggleBranch(this)">
+                    <span class="toggle-icon">▶</span>
+                    <span class="year-label">2021</span>
+                    <span class="release-count">52</span>
+                  </div>
+                  <ul class="collapsed">
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmxsf123121.htm" target="_blank">Dec 31 2021</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmxsf010521.htm" target="_blank">Jan 05 2021</a></li>
+                  </ul>
+                </li>
+
+                <!-- 2020 Gold -->
+                <li>
+                  <div class="branch-toggle" onclick="toggleBranch(this)">
+                    <span class="toggle-icon">▶</span>
+                    <span class="year-label">2020</span>
+                    <span class="release-count">53</span>
+                  </div>
+                  <ul class="collapsed">
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmxsf123120.htm" target="_blank">Dec 31 2020</a></li>
+                    <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmxsf010720.htm" target="_blank">Jan 07 2020</a></li>
+                  </ul>
+                </li>
+
+              </ul>
+            </li>
+
+          </ul>
+        </li>
+
+        <!-- Bulk -->
+        <li>
+          <div class="branch-toggle" onclick="toggleBranch(this)">
+            <span class="toggle-icon">▶</span>
+            <span class="report-label">Bulk / ZIP Archives</span>
+          </div>
+          <ul style="max-height:9999px">
+            <li><a class="bulk-link" href="https://www.cftc.gov/MarketReports/CommitmentsofTraders/HistoricalCompressed/index.htm" target="_blank">All Years — Historical ZIP Archives (CFTC)</a></li>
+          </ul>
+        </li>
+
+      </ul>
+    </div><!-- /branch-metals -->
+
+
+    <!-- ══════════════════════════════════════════
+         BRANCH 3: CRYPTO — BITCOIN
+    ══════════════════════════════════════════ -->
+    <div class="branch" id="branch-crypto" style="margin-top:2rem">
+      <div class="section-strip">
+        <div class="section-strip-icon crypto">₿</div>
+        <span class="section-strip-title">Cryptocurrencies — Bitcoin</span>
+        <span class="section-strip-sub">CME · Bitcoin (BTC) Futures · Available from 2018</span>
+      </div>
+
+      <div class="branch-toggle open" onclick="toggleBranch(this)">
+        <span class="toggle-icon">▶</span>
+        <span class="section-label crypto">Crypto — Bitcoin (BTC) CME Futures</span>
+      </div>
+      <ul style="max-height:9999px">
+
+        <!-- CURRENT -->
+        <li>
+          <div class="branch-toggle open" onclick="toggleBranch(this)">
+            <span class="toggle-icon">▶</span>
+            <span class="report-label">Current Report (Live)</span>
+          </div>
+          <ul style="max-height:9999px">
+            <li><a class="current-link" href="https://www.cftc.gov/dea/futures/deacmesf.htm" target="_blank">→ CME Futures Only — Current (includes Bitcoin)</a></li>
+            <li><a class="current-link" href="https://www.cftc.gov/dea/newcot/FinFutWk.htm" target="_blank">→ TFF Financial Futures — Current (Bitcoin listed)</a></li>
+          </ul>
+        </li>
+
+        <!-- BITCOIN historical -->
+        <li>
+          <div class="branch-toggle open" onclick="toggleBranch(this)">
+            <span class="toggle-icon">▶</span>
+            <span class="instrument-label">Bitcoin (BTC) — CME Futures</span>
+          </div>
+          <ul style="max-height:9999px">
+            <li style="color:var(--ink-faint);font-size:11px;padding-left:4px;">
+              ℹ Bitcoin COT data is included in CME CME Futures reports (deacmesf). Filter by instrument code 133741 on the CFTC report pages.
+            </li>
+
+            <!-- 2026 BTC -->
+            <li>
+              <div class="branch-toggle open" onclick="toggleBranch(this)">
+                <span class="toggle-icon">▶</span>
+                <span class="year-label">2026</span>
+                <span class="release-count">11</span>
+              </div>
+              <ul style="max-height:9999px">
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2026/futures/deacmesf031726.htm" target="_blank">Mar 17 2026</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2026/futures/deacmesf031026.htm" target="_blank">Mar 10 2026</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2026/futures/deacmesf030326.htm" target="_blank">Mar 03 2026</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2026/futures/deacmesf022426.htm" target="_blank">Feb 24 2026</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2026/futures/deacmesf021726.htm" target="_blank">Feb 17 2026</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2026/futures/deacmesf021026.htm" target="_blank">Feb 10 2026</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2026/futures/deacmesf020326.htm" target="_blank">Feb 03 2026</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2026/futures/deacmesf012726.htm" target="_blank">Jan 27 2026</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2026/futures/deacmesf012026.htm" target="_blank">Jan 20 2026</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2026/futures/deacmesf011326.htm" target="_blank">Jan 13 2026</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2026/futures/deacmesf010626.htm" target="_blank">Jan 06 2026</a></li>
+              </ul>
+            </li>
+
+            <!-- 2025 BTC -->
+            <li>
+              <div class="branch-toggle" onclick="toggleBranch(this)">
+                <span class="toggle-icon">▶</span>
+                <span class="year-label">2025</span>
+                <span class="release-count">52</span>
+              </div>
+              <ul class="collapsed">
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf123025.htm" target="_blank">Dec 30 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf122325.htm" target="_blank">Dec 23 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf121625.htm" target="_blank">Dec 16 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf120925.htm" target="_blank">Dec 09 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf120225.htm" target="_blank">Dec 02 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf112525.htm" target="_blank">Nov 25 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf111825.htm" target="_blank">Nov 18 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf111125.htm" target="_blank">Nov 11 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf110425.htm" target="_blank">Nov 04 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf102825.htm" target="_blank">Oct 28 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf102125.htm" target="_blank">Oct 21 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf101425.htm" target="_blank">Oct 14 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf100725.htm" target="_blank">Oct 07 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf093025.htm" target="_blank">Sep 30 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf092325.htm" target="_blank">Sep 23 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf091625.htm" target="_blank">Sep 16 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf090925.htm" target="_blank">Sep 09 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf090225.htm" target="_blank">Sep 02 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf082625.htm" target="_blank">Aug 26 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf081925.htm" target="_blank">Aug 19 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf081225.htm" target="_blank">Aug 12 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf080525.htm" target="_blank">Aug 05 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf072925.htm" target="_blank">Jul 29 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf072225.htm" target="_blank">Jul 22 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf071525.htm" target="_blank">Jul 15 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf070825.htm" target="_blank">Jul 08 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf070125.htm" target="_blank">Jul 01 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf062425.htm" target="_blank">Jun 24 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf061725.htm" target="_blank">Jun 17 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf061025.htm" target="_blank">Jun 10 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf060325.htm" target="_blank">Jun 03 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf052725.htm" target="_blank">May 27 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf052025.htm" target="_blank">May 20 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf051325.htm" target="_blank">May 13 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf050625.htm" target="_blank">May 06 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf042925.htm" target="_blank">Apr 29 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf042225.htm" target="_blank">Apr 22 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf041525.htm" target="_blank">Apr 15 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf040825.htm" target="_blank">Apr 08 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf040125.htm" target="_blank">Apr 01 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf032525.htm" target="_blank">Mar 25 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf031825.htm" target="_blank">Mar 18 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf031125.htm" target="_blank">Mar 11 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf030425.htm" target="_blank">Mar 04 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf022525.htm" target="_blank">Feb 25 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf021825.htm" target="_blank">Feb 18 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf021125.htm" target="_blank">Feb 11 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf020425.htm" target="_blank">Feb 04 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf012825.htm" target="_blank">Jan 28 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf012125.htm" target="_blank">Jan 21 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf011425.htm" target="_blank">Jan 14 2025</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2025/futures/deacmesf010725.htm" target="_blank">Jan 07 2025</a></li>
+              </ul>
+            </li>
+
+            <!-- 2024 BTC -->
+            <li>
+              <div class="branch-toggle" onclick="toggleBranch(this)">
+                <span class="toggle-icon">▶</span>
+                <span class="year-label">2024</span>
+                <span class="release-count">52</span>
+              </div>
+              <ul class="collapsed">
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf123124.htm" target="_blank">Dec 31 2024</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2024/futures/deacmesf010924.htm" target="_blank">Jan 09 2024</a></li>
+              </ul>
+            </li>
+
+            <!-- 2023 BTC -->
+            <li>
+              <div class="branch-toggle" onclick="toggleBranch(this)">
+                <span class="toggle-icon">▶</span>
+                <span class="year-label">2023</span>
+                <span class="release-count">52</span>
+              </div>
+              <ul class="collapsed">
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf123123.htm" target="_blank">Dec 31 2023</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2023/futures/deacmesf010323.htm" target="_blank">Jan 03 2023</a></li>
+              </ul>
+            </li>
+
+            <!-- 2022 BTC -->
+            <li>
+              <div class="branch-toggle" onclick="toggleBranch(this)">
+                <span class="toggle-icon">▶</span>
+                <span class="year-label">2022</span>
+                <span class="release-count">52</span>
+              </div>
+              <ul class="collapsed">
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf123022.htm" target="_blank">Dec 30 2022</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2022/futures/deacmesf010422.htm" target="_blank">Jan 04 2022</a></li>
+              </ul>
+            </li>
+
+            <!-- 2021 BTC -->
+            <li>
+              <div class="branch-toggle" onclick="toggleBranch(this)">
+                <span class="toggle-icon">▶</span>
+                <span class="year-label">2021</span>
+                <span class="release-count">52</span>
+              </div>
+              <ul class="collapsed">
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf123121.htm" target="_blank">Dec 31 2021</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf010521.htm" target="_blank">Jan 05 2021</a></li>
+              </ul>
+            </li>
+
+            <!-- 2020 BTC -->
+            <li>
+              <div class="branch-toggle" onclick="toggleBranch(this)">
+                <span class="toggle-icon">▶</span>
+                <span class="year-label">2020</span>
+                <span class="release-count">53</span>
+              </div>
+              <ul class="collapsed">
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf123120.htm" target="_blank">Dec 31 2020</a></li>
+                <li><a class="release-link" href="https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2020/futures/deacmesf010720.htm" target="_blank">Jan 07 2020</a></li>
+              </ul>
+            </li>
+
+          </ul>
+        </li>
+
+        <!-- Bulk -->
+        <li>
+          <div class="branch-toggle" onclick="toggleBranch(this)">
+            <span class="toggle-icon">▶</span>
+            <span class="report-label">Bulk / ZIP Archives</span>
+          </div>
+          <ul style="max-height:9999px">
+            <li><a class="bulk-link" href="https://www.cftc.gov/MarketReports/CommitmentsofTraders/HistoricalCompressed/index.htm" target="_blank">All Years — Historical ZIP Archives (CFTC)</a></li>
+          </ul>
+        </li>
+
+      </ul>
+    </div><!-- /branch-crypto -->
+
+  </div><!-- /tree-root -->
+
+</main>
+
+<!-- ════════════════════════════════════════════
+     SITE FOOTER
+════════════════════════════════════════════ -->
+<footer class="site-footer">
+  <div class="footer-inner">
+    <span class="footer-logo">Maksim Felix</span>
+    <nav class="footer-links">
+      <a href="/">Recent COT</a>
+      <a href="/dates/">Historical COT Tabled</a>
+      <a href="/analysis/">Recent COT Analysis</a>
+      <a href="/historicalCOTTree/">Historical COT Tree</a>
+      <a href="/import/">Import COT</a>
+    </nav>
+    <span class="footer-note">Data source: CFTC.gov &nbsp;·&nbsp; © 2026 Maksim Felix</span>
+  </div>
+</footer>
+
+<script>
+  /* ─── Branch toggle ─── */
+  function toggleBranch(btn) {
+    const ul = btn.nextElementSibling;
+    if (!ul || ul.tagName !== 'UL') return;
+
+    const isOpen = btn.classList.contains('open');
+
+    if (isOpen) {
+      btn.classList.remove('open');
+      const h = ul.scrollHeight;
+      ul.style.maxHeight = h + 'px';
+      requestAnimationFrame(() => { ul.classList.add('collapsed'); ul.style.maxHeight = ''; });
+    } else {
+      btn.classList.add('open');
+      ul.classList.remove('collapsed');
+      ul.style.maxHeight = ul.scrollHeight + 'px';
+      ul.addEventListener('transitionend', () => { ul.style.maxHeight = '9999px'; }, { once: true });
+    }
+  }
+
+  function expandAll() {
+    document.querySelectorAll('.branch-toggle').forEach(btn => {
+      const ul = btn.nextElementSibling;
+      if (!ul || ul.tagName !== 'UL') return;
+      btn.classList.add('open');
+      ul.classList.remove('collapsed');
+      ul.style.maxHeight = '9999px';
+    });
+  }
+
+  function collapseAll() {
+    document.querySelectorAll('.branch-toggle').forEach(btn => {
+      const ul = btn.nextElementSibling;
+      if (!ul || ul.tagName !== 'UL') return;
+      btn.classList.remove('open');
+      ul.classList.add('collapsed');
+      ul.style.maxHeight = '';
+    });
+  }
+
+  /* ─── Search ─── */
+  document.getElementById('searchInput').addEventListener('input', function () {
+    const q = this.value.toLowerCase().trim();
+    if (!q) {
+      document.querySelectorAll('.release-link, .current-link, .bulk-link').forEach(a => {
+        a.parentElement.style.display = '';
+      });
+      return;
+    }
+    document.querySelectorAll('.release-link, .current-link, .bulk-link').forEach(a => {
+      const match = a.textContent.toLowerCase().includes(q) || a.href.toLowerCase().includes(q);
+      a.parentElement.style.display = match ? '' : 'none';
+
+      if (match) {
+        // expand parents
+        let el = a.parentElement.parentElement;
+        while (el) {
+          if (el.tagName === 'UL') {
+            el.classList.remove('collapsed');
+            el.style.maxHeight = '9999px';
+            const prev = el.previousElementSibling;
+            if (prev && prev.classList.contains('branch-toggle')) prev.classList.add('open');
+          }
+          el = el.parentElement;
+        }
+      }
+    });
+  });
+</script>
+
+</body>
+</html>

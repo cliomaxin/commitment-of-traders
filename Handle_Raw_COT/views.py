@@ -208,17 +208,33 @@ class CotUploadView(View):
 
 class ScrapeCotLinksView(View):
     template_name = "Raw/scraping_data.html"
+    MAX_NEW_REPORTS_TO_SCRAPE = 5  # Only scrape the 5 most recent new report dates
 
     def get(self, request):
         total_urls = ExtrapolatedReport.objects.count()
         
-        # Calculate missing/newer URLs for selective scraping
+        # Calculate newer URLs available for selective scraping
         latest_scraped_date = ScrapedCotReport.objects.aggregate(max_date=models.Max('as_of_date'))['max_date']
         if latest_scraped_date:
-            missing_urls = ExtrapolatedReport.objects.filter(report_date__gt=latest_scraped_date).count()
+            # Get the distinct dates of newer reports
+            newer_dates = list(
+                ExtrapolatedReport.objects
+                .filter(report_date__gt=latest_scraped_date)
+                .values_list('report_date', flat=True)
+                .distinct()
+                .order_by('-report_date')[:self.MAX_NEW_REPORTS_TO_SCRAPE]
+            )
+            # Count URLs that will actually be scraped
+            missing_urls = ExtrapolatedReport.objects.filter(report_date__in=newer_dates).count()
         else:
             # If no scraped data, show count of recent reports that would be scraped
-            missing_urls = min(10, ExtrapolatedReport.objects.count())
+            recent_reports = list(
+                ExtrapolatedReport.objects
+                .values_list('report_date', flat=True)
+                .distinct()
+                .order_by('-report_date')[:self.MAX_NEW_REPORTS_TO_SCRAPE]
+            )
+            missing_urls = ExtrapolatedReport.objects.filter(report_date__in=recent_reports).count()
         
         last_log = ImportLog.objects.filter(filename__startswith="remote-urls-scrape").order_by("-uploaded_at").first()
         recent = ScrapedCotReport.objects.order_by("-as_of_date", "name")[:20]
@@ -248,18 +264,34 @@ class ScrapeCotLinksView(View):
             latest_scraped_date = ScrapedCotReport.objects.aggregate(max_date=models.Max('as_of_date'))['max_date']
             
             if latest_scraped_date:
-                # Only scrape reports newer than the latest scraped date
-                extrapolated_reports = ExtrapolatedReport.objects.filter(report_date__gt=latest_scraped_date).order_by("category", "report_date")
+                # Get only the most recent new report dates (limited to MAX_NEW_REPORTS_TO_SCRAPE)
+                newer_dates = list(
+                    ExtrapolatedReport.objects
+                    .filter(report_date__gt=latest_scraped_date)
+                    .values_list('report_date', flat=True)
+                    .distinct()
+                    .order_by('-report_date')[:self.MAX_NEW_REPORTS_TO_SCRAPE]
+                )
+                extrapolated_reports = ExtrapolatedReport.objects.filter(
+                    report_date__in=newer_dates
+                ).order_by("category", "report_date")
                 urls = list(extrapolated_reports.values_list("url", flat=True))
                 print(f"DEBUG: Selective scraping - latest scraped date: {latest_scraped_date}")
-                print(f"DEBUG: Found {len(urls)} newer reports to scrape")
-                for report in extrapolated_reports:
-                    print(f"DEBUG: Will scrape newer report: {report.report_date} - {report.url}")
+                print(f"DEBUG: Found {len(newer_dates)} new report dates, limiting to {self.MAX_NEW_REPORTS_TO_SCRAPE} most recent")
+                print(f"DEBUG: Total {len(urls)} URLs to scrape from {len(newer_dates)} report dates")
             else:
-                # No scraped data yet, scrape the most recent reports (last 10 or so)
-                extrapolated_reports = ExtrapolatedReport.objects.order_by("-report_date")[:10]
+                # No scraped data yet, scrape the most recent reports (limited to MAX_NEW_REPORTS_TO_SCRAPE dates)
+                recent_dates = list(
+                    ExtrapolatedReport.objects
+                    .values_list('report_date', flat=True)
+                    .distinct()
+                    .order_by('-report_date')[:self.MAX_NEW_REPORTS_TO_SCRAPE]
+                )
+                extrapolated_reports = ExtrapolatedReport.objects.filter(
+                    report_date__in=recent_dates
+                ).order_by("category", "report_date")
                 urls = list(extrapolated_reports.values_list("url", flat=True))
-                print(f"DEBUG: No scraped data found, scraping {len(urls)} most recent reports")
+                print(f"DEBUG: No scraped data found, scraping {len(urls)} most recent reports from {len(recent_dates)} dates")
         else:
             # Scrape all URLs
             urls = list(ExtrapolatedReport.objects.order_by("category", "report_date").values_list("url", flat=True))

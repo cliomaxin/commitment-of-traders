@@ -166,16 +166,22 @@
       <span class="card-head-title">Stored report links</span>
     </div>
     <div class="card-body">
-      <p>Total stored report URLs available for scraping: <strong>{{ total_urls }}</strong></p>
-      <p>Newer reports available for selective scraping: <strong>{{ missing_urls }}</strong></p>
+      <p>Total stored report URLs available: <strong>{{ total_urls }}</strong></p>
+      <p style="color: var(--gold); margin-bottom: 1.5rem;">
+        <strong>{{ missing_urls }}</strong> URLs ready in recent new reports (targeting last 5 report dates)
+      </p>
       {% if last_log %}
       <p>Last scrape session: <strong>{{ last_log.uploaded_at|date:"d M Y H:i" }}</strong> — status <strong>{{ last_log.get_status_display }}</strong></p>
       {% endif %}
       <form id="scrape-form" method="post" action="{% url 'Handle_Raw_COT:scraping' %}">
         {% csrf_token %}
-        <button type="submit" class="btn-primary">Scrape All URLs</button>
-        <button type="submit" name="selective" value="1" class="btn-secondary" style="margin-left: 1rem;">Scrape Newer Only</button>
+        <button type="submit" name="selective" value="1" class="btn-primary">Scrape New Only (Fast)</button>
+        <button type="submit" class="btn-secondary" style="margin-left: 1rem;">Scrape All URLs</button>
       </form>
+      <p style="font-size: 0.75rem; color: var(--text-2); margin-top: 1rem;">
+        <strong>Scrape New Only:</strong> Targets only the 5 most recent new report dates (much faster)
+        <br/><strong>Scrape All:</strong> Re-processes entire URL list (comprehensive but slower)
+      </p>
     </div>
   </div>
 
@@ -327,7 +333,8 @@ document.getElementById('scrape-form').addEventListener('submit', function(e) {
 });
 
 function openProgressPopup(taskId, totalUrls, isSelective) {
-    const scrapeType = isSelective ? 'Selective' : 'Full';
+    const scrapeType = isSelective ? 'New URLs Only' : 'All URLs';
+    const scrapeDesc = isSelective ? 'Only scraping the 5 most recent new report dates' : 'Scraping all stored URLs (comprehensive)';
     const popup = window.open('', 'scrapeProgress', 'width=600,height=400,scrollbars=yes,resizable=yes');
     
     popup.document.write(`
@@ -347,7 +354,7 @@ function openProgressPopup(taskId, totalUrls, isSelective) {
         </head>
         <body>
             <h2>${scrapeType} Scraping Progress</h2>
-            <div class="type">${isSelective ? 'Only scraping missing reports' : 'Scraping all stored URLs'}</div>
+            <div class="type">${scrapeDesc}</div>
             <div class="progress">
                 <div class="bar">
                     <div class="fill" id="progress-fill"></div>

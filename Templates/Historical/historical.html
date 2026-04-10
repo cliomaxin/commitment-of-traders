@@ -513,17 +513,17 @@
       <div class="hero-sub">
         <span>Commitments of Traders</span>
         <span>Futures Only · Legacy Format</span>
-        <span>2020 → 2026</span>
+        <span>{% if year_range %}{{ year_range }}{% else %}From Database{% endif %}</span>
       </div>
     </div>
     <div class="hero-stats">
       <div class="hero-stat">
-        <div class="hero-stat-label">Branches</div>
-        <div class="hero-stat-value">3</div>
+        <div class="hero-stat-label">Total URLs</div>
+        <div class="hero-stat-value">{{ total_urls }}</div>
       </div>
       <div class="hero-stat">
         <div class="hero-stat-label">Source</div>
-        <div class="hero-stat-value" style="font-size:0.8rem;padding-top:4px;">CFTC.gov</div>
+        <div class="hero-stat-value" style="font-size:0.8rem;padding-top:4px;">Live Data</div>
       </div>
     </div>
   </div>
@@ -542,21 +542,111 @@
 
   <div class="tree-root" id="treeRoot">
 
-    <!-- ══════════════════════════════════════════
-         BRANCH 1: FOREX MAJOR PAIRS
-    ══════════════════════════════════════════ -->
-    <div class="branch" id="branch-forex">
-      <div class="section-strip">
-        <div class="section-strip-icon forex">FX</div>
-        <span class="section-strip-title">Forex Major Pairs</span>
-        <span class="section-strip-sub">EUR · JPY · GBP · CAD · CHF · AUD · NZD · MXN</span>
-      </div>
+    {% for category_key, category_data in organized_data.items %}
+      {% if category_key == 'forex' %}
+        <!-- ══════════════════════════════════════════
+             BRANCH: FOREX MAJOR PAIRS
+        ══════════════════════════════════════════ -->
+        <div class="branch" id="branch-forex">
+          <div class="section-strip">
+            <div class="section-strip-icon forex">FX</div>
+            <span class="section-strip-title">Forex Major Pairs</span>
+            <span class="section-strip-sub">EUR · JPY · GBP · CAD · CHF · AUD · NZD · MXN</span>
+          </div>
 
-      <div class="branch-toggle open" onclick="toggleBranch(this)">
-        <span class="toggle-icon">▶</span>
-        <span class="section-label forex">FX — Major Currency Pairs</span>
-      </div>
-      <ul style="max-height:9999px">
+          <div class="branch-toggle open" onclick="toggleBranch(this)">
+            <span class="toggle-icon">▶</span>
+            <span class="section-label forex">FX — Major Currency Pairs</span>
+          </div>
+          <ul style="max-height:9999px">
+
+      {% elif category_key == 'metals' %}
+        <!-- ══════════════════════════════════════════
+             BRANCH: METALS
+        ══════════════════════════════════════════ -->
+        <div class="branch" id="branch-metals" style="margin-top:2rem">
+          <div class="section-strip">
+            <div class="section-strip-icon metals">⚱</div>
+            <span class="section-strip-title">Precious Metals</span>
+            <span class="section-strip-sub">Gold · Silver · Platinum · Palladium</span>
+          </div>
+
+          <div class="branch-toggle open" onclick="toggleBranch(this)">
+            <span class="toggle-icon">▶</span>
+            <span class="section-label metals">Metals — COMEX Futures</span>
+          </div>
+          <ul style="max-height:9999px">
+
+      {% elif category_key == 'crypto' %}
+        <!-- ══════════════════════════════════════════
+             BRANCH: CRYPTO — BITCOIN
+        ══════════════════════════════════════════ -->
+        <div class="branch" id="branch-crypto" style="margin-top:2rem">
+          <div class="section-strip">
+            <div class="section-strip-icon crypto">₿</div>
+            <span class="section-strip-title">Cryptocurrencies — Bitcoin</span>
+            <span class="section-strip-sub">CME · Bitcoin (BTC) Futures · Available from 2018</span>
+          </div>
+
+          <div class="branch-toggle open" onclick="toggleBranch(this)">
+            <span class="toggle-icon">▶</span>
+            <span class="section-label crypto">Crypto — Bitcoin (BTC) CME Futures</span>
+          </div>
+          <ul style="max-height:9999px">
+
+      {% endif %}
+
+            <!-- HISTORICAL RELEASES -->
+            <li>
+              <div class="branch-toggle open" onclick="toggleBranch(this)">
+                <span class="toggle-icon">▶</span>
+                <span class="report-label">Historical Releases</span>
+              </div>
+              <ul style="max-height:9999px">
+
+                {% for year_data in category_data.years %}
+                  <li>
+                    <div class="branch-toggle {% if forloop.first %}open{% endif %}" onclick="toggleBranch(this)">
+                      <span class="toggle-icon">▶</span>
+                      <span class="year-label">{{ year_data.year }}</span>
+                      <span class="release-count">{{ year_data.count }}</span>
+                    </div>
+                    <ul {% if forloop.first %}style="max-height:9999px"{% else %}class="collapsed"{% endif %}>
+                      {% for report in year_data.reports %}
+                        <li><a class="release-link" href="{{ report.url }}" target="_blank">{{ report.report_date|date:"M d Y" }}</a></li>
+                      {% endfor %}
+                    </ul>
+                  </li>
+                {% endfor %}
+
+              </ul>
+            </li>
+
+          </ul>
+        </div><!-- /branch-{{ category_key }} -->
+
+    {% endfor %}
+
+  </div><!-- /tree-root -->
+
+</main>
+
+<!-- ════════════════════════════════════════════
+     SITE FOOTER
+════════════════════════════════════════════ -->
+<footer class="site-footer">
+  <div class="footer-inner">
+    <span class="footer-logo">Maksim Felix</span>
+    <nav class="footer-links">
+      <a href="/">Recent COT</a>
+      <a href="/dates/">Historical COT Tabled</a>
+      <a href="/analysis/">Recent COT Analysis</a>
+      <a href="/historicalCOTTree/">Historical COT Tree</a>
+      <a href="/import/">Import COT</a>
+    </nav>
+    <span class="footer-note">Data source: CFTC.gov &nbsp;·&nbsp; © 2026 Maksim Felix</span>
+  </div>
+</footer>
 
         <!-- CURRENT REPORT -->
         <li>
